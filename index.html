@@ -2,106 +2,172 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Earthymic Herbs — Natural Products</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earthymic | Pure Herbs, Pure Living</title>
+<meta name="description" content="Earthymic — pure herbs for pure living.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="topbar">Free shipping on orders over ₹999 • Earthymic Herbs</div>
-<header>
-  <a class="brand" href="#"><img src="assets/earthymic-logo.png" alt="Earthymic logo"><span>EARTHYMIC</span></a>
-  <nav>
-    <a href="#home">Home</a><a href="#herbs">Herbs</a><a href="#about">About</a><a href="#contact">Contact</a>
-  </nav>
-  <div class="actions">
-    <button id="searchBtn" aria-label="Search">⌕</button>
-    <button id="cartBtn" aria-label="Cart">🛒 <b id="cartCount">0</b></button>
+
+<div class="topbar">
+  <div class="top-left"><span>🌿 100% Natural</span><b>|</b><span>No Chemicals</span><b>|</b><span>Premium Quality Herbs</span></div>
+  <div class="top-right"><span>🚚 Free Shipping on Orders Above ₹499</span><b>|</b><span>◉ WhatsApp Us</span></div>
+</div>
+
+<header class="main-header">
+  <div class="header-inner">
+    <button class="mobile-menu" id="menuBtn" aria-label="Menu">☰</button>
+    <a href="#home" class="logo-card"><img src="assets/earthymic-logo.png" alt="Earthymic"></a>
+
+    <nav id="nav">
+      <a class="active" href="#home">HOME</a>
+      <a href="#herbs">SHOP HERBS <span>⌄</span></a>
+      <a href="#story">ABOUT US</a>
+      <a href="#contact">CONTACT US</a>
+    </nav>
+
+    <div class="icons">
+      <button id="searchBtn" aria-label="Search">⌕</button>
+      <button aria-label="Account">♙</button>
+      <button id="cartBtn" class="cart-button" aria-label="Cart">🛒<em id="cartCount">0</em></button>
+    </div>
   </div>
 </header>
 
 <main id="home">
+
 <section class="hero">
   <div class="hero-copy">
-    <span class="eyebrow">EARTHYMIC • HERBS</span>
-    <h1>Simple herbs.<br><em>Rooted in nature.</em></h1>
-    <p>Discover carefully presented traditional herbs for everyday beauty, wellness and natural living.</p>
-    <a class="btn" href="#herbs">Shop Herbs</a>
+    <span class="leaf-kicker">EARTHYMIC</span>
+    <h1>Pure Herbs<br><span>Pure Living</span></h1>
+    <div class="hero-rule"></div>
+    <p>Carefully sourced. Naturally dried.<br>Packed with purity and goodness.</p>
+    <a class="shop-now" href="#herbs">SHOP NOW <span>→</span></a>
   </div>
-  <div class="hero-art">
-    <div class="leaf leaf1"></div><div class="leaf leaf2"></div>
-    <div class="hero-pouch"><img class="hero-logo" src="assets/earthymic-logo.png" alt="Earthymic logo"><strong>HERBS</strong><span>Natural Collection • 200 g</span></div>
+
+  <div class="hero-scene" aria-label="Earthymic herb products">
+    <div class="wood"></div>
+    <div class="hero-pouch pouch-left"><img src="assets/products/tulsi.png" alt="Earthymic Tulsi Leaves 200 g"></div>
+    <div class="hero-pouch pouch-main"><img src="assets/products/multani.png" alt="Earthymic Multani Mitti 200 g"></div>
+    <div class="hero-pouch pouch-right"><img src="assets/products/brahmi.png" alt="Earthymic Brahmi Powder 200 g"></div>
+   
+  </div>
+  <button class="hero-arrow left">←</button><button class="hero-arrow right">→</button>
+  <div class="hero-dots"><b></b><i></i><i></i><i></i></div>
+</section>
+
+<section class="benefits">
+  <div><div class="benefit-icon">◒</div><article><b>100% Natural</b><span>No additives or chemicals</span></article></div>
+  <div><div class="benefit-icon">♧</div><article><b>Premium Quality</b><span>Carefully selected herbs</span></article></div>
+  <div><div class="benefit-icon">⚱</div><article><b>Freshly Packed</b><span>Hygienic & safe packaging</span></article></div>
+  <div><div class="benefit-icon">▱</div><article><b>Fast & Safe Delivery</b><span>Pan India delivery</span></article></div>
+</section>
+
+<section id="herbs" class="bestsellers">
+  <div class="section-title">
+    <span>EARTHYMIC COLLECTION</span>
+    <h2>Our Bestsellers</h2>
+    <div class="title-decoration"><i></i> ❧ <i></i></div>
+    <p>Discover our carefully selected range of pure herbs.</p>
+  </div>
+
+  <div class="filter-row">
+    <div>
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="hair">Hair Care</button>
+      <button class="filter" data-filter="skin">Skin Care</button>
+      <button class="filter" data-filter="wellness">Wellness</button>
+    </div>
+    <input id="search" type="search" placeholder="Search herbs...">
+  </div>
+
+  <div id="products" class="product-grid"></div>
+</section>
+
+<section class="promise">
+  <div class="promise-text">
+    <span>WHY EARTHYMIC?</span>
+    <h2>Nature's goodness,<br>packed for modern living.</h2>
+    <p>We begin with herbs that people know and trust, presented with a consistent Earthymic identity. Our range can grow with your needs.</p>
+    <a href="#story">ABOUT EARTHYMIC →</a>
   </div>
 </section>
 
-<section class="trust">
-  <div><b>🌿</b><span>Herb-focused collection</span></div>
-  <div><b>📦</b><span>Fresh-looking original packaging</span></div>
-  <div><b>🤝</b><span>Simple enquiry-first shopping</span></div>
-</section>
-
-<section id="herbs" class="products-section">
-  <div class="section-head">
-    <div><span class="eyebrow">SHOP</span><h2>Herb Collection</h2></div>
-    <div class="search-wrap"><input id="search" placeholder="Search herbs…"><select id="sort"><option value="default">Sort</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option></select></div>
-  </div>
-  <div id="grid" class="grid"></div>
-</section>
-
-<section id="about" class="about">
-  <div><span class="eyebrow">ABOUT EARTHYMIC</span><h2>Earthymic is built on the idea that nature doesn't rush. It moves in seasons, cycles, and quiet returns.</h2></div>
-  <p>closer to the earth, better for you.</p>
+<section id="story" class="story">
+  <span>OUR STORY</span>
+  <h2>Inspired by earth.<br>Made for you.</h2>
+  <p>Earthymic is an evolving Indian consumer brand. Herbs are our starting point, with room to grow into other everyday products in the future.</p>
 </section>
 
 <section id="contact" class="contact">
-  <div><span class="eyebrow">GET IN TOUCH</span><h2>Have a product question?</h2><p>Send an enquiry and we’ll get back to you.</p></div>
-  <form id="enquiryForm"><input required placeholder="Your name"><input required type="tel" placeholder="WhatsApp / phone"><input type="email" placeholder="Email"><textarea placeholder="What are you interested in?"></textarea><button class="btn" type="submit">Send Enquiry</button></form>
+  <div><span>GET IN TOUCH</span><h2>Have a question?</h2><p>Send an enquiry and we'll get back to you. This demo form can later connect to WhatsApp, email or your backend.</p></div>
+  <form id="form"><input required placeholder="Your name"><input required placeholder="WhatsApp / phone"><input type="email" placeholder="Email"><textarea placeholder="What would you like to know?"></textarea><button class="shop-now" type="submit">SEND ENQUIRY →</button></form>
 </section>
+
 </main>
 
-<footer><div class="brand footer-brand"><img src="assets/earthymic-logo.png" alt=""><span>EARTHYMIC</span></div><p>© 2026 Earthymic. Demo storefront for local testing.</p></footer>
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-about"><div class="footer-logo"><img src="assets/earthymic-logo.png" alt="Earthymic"></div><p>Inspired by earth, made for you.</p><p>Pure herbs for pure living.</p></div>
+    <div><h4>SHOP</h4><a href="#herbs">All Herbs</a><a href="#herbs">Hair Care</a><a href="#herbs">Skin Care</a><a href="#herbs">Wellness</a></div>
+    <div><h4>QUICK LINKS</h4><a href="#story">About Us</a><a href="#">Shipping & Returns</a><a href="#">FAQs</a><a href="#">Privacy Policy</a></div>
+    <div><h4>CONTACT US</h4><p>Earthymic<br>India</p><p>WhatsApp: Add your number</p><p>Email: Add your email</p></div>
+  </div>
+  <div class="copyright">© 2026 EARTHYMIC. All rights reserved.<span>Pure Herbs • Pure Living</span></div>
+</footer>
 
-<div id="overlay" class="overlay hidden"></div>
-<aside id="cart" class="drawer"><button class="close" id="closeCart">×</button><h2>Your Cart</h2><div id="cartItems"></div><div class="cart-total">Total <strong id="cartTotal">₹0</strong></div><button class="btn full" id="enquireCart">Enquire About Cart</button></aside>
+<a class="whatsapp" href="#contact" aria-label="WhatsApp">◔</a>
+
+<div class="backdrop" id="backdrop"></div>
+<aside class="cart" id="cart">
+  <button class="close" id="closeCart">×</button>
+  <span>EARTHYMIC</span><h2>Your Cart</h2>
+  <div id="cartItems"></div>
+  <div class="cart-total"><b>Total</b><strong id="total">₹0</strong></div>
+  <button class="shop-now full" id="cartEnquiry">ENQUIRE ABOUT CART →</button>
+</aside>
 
 <script>
-const products = [
-  {name:'Amla Powder', category:'Herbs', price:'₹243', label:'Amla', desc:'Rich in naturally occurring antioxidants; a versatile traditional herb.'},
-  {name:'Rosemary Leaves', category:'Herbs', price:'₹199', label:'Rosemary', desc:'Aromatic dried rosemary leaves for everyday herbal use.'},
-  {name:'Multani Mitti', category:'Herbs', price:'₹179', label:'Multani Mitti', desc:'Traditional mineral-rich earth powder for natural care routines.'},
-  {name:'Bhringraj Powder', category:'Herbs', price:'₹229', label:'Bhringraj', desc:'A classic Indian herb traditionally used in hair-care routines.'},
-  {name:'Shikakai Powder', category:'Herbs', price:'₹189', label:'Shikakai', desc:'Traditional botanical powder commonly used for hair cleansing.'},
-  {name:'Reetha Powder', category:'Herbs', price:'₹199', label:'Reetha', desc:'Soapnut powder traditionally used as a natural cleanser.'},
-  {name:'Ashwagandha Powder', category:'Herbs', price:'₹249', label:'Ashwagandha', desc:'Traditional botanical powder for wellness-focused routines.'},
-  {name:'Hibiscus Flower', category:'Herbs', price:'₹219', label:'Hibiscus', desc:'Dried hibiscus botanical for traditional beauty and wellness use.'}
+const products=[
+["Amla Powder","AMLA","wellness",243,"Traditional amla powder for everyday natural routines.","amla.png"],
+["Ashwagandha Powder","ASHWAGANDHA","wellness",249,"Traditional botanical powder for wellness routines.","ashwagandha.png"],
+["Bhringraj Powder","BHRINGRAJ","hair",229,"A classic botanical for traditional hair-care routines.","bhringraj.png"],
+["Hibiscus Flower","HIBISCUS","skin",219,"Dried hibiscus botanical for traditional beauty routines.","hibiscus.png"],
+["Rosemary Leaves","ROSEMARY","hair",199,"Aromatic rosemary leaves for herbal routines.","rosemary.png"],
+["Shikakai Powder","SHIKAKAI","hair",189,"Traditional botanical powder for natural hair cleansing.","shikakai.png"],
+["Reetha Whole","REETHA","hair",199,"Soapnut fruit traditionally used as a natural cleanser.","reetha.png"],
+["Tulsi Leaves","TULSI","wellness",189,"Freshly dried tulsi leaves for everyday herbal routines.","tulsi.png"],
+["Brahmi Powder","BRAHMI","wellness",219,"Traditional brahmi powder for natural routines.","brahmi.png"],
+["Multani Mitti Powder","MULTANI MITTI","skin",179,"Traditional mineral-rich earth powder for natural care.","multani.png"]
 ];
-let cart = [];
-const grid = document.getElementById('grid');
-
-function pouch(label){
- return `<div class="product-image"><div class="pouch"><img class="pack-logo" src="assets/earthymic-logo.png" alt="Earthymic logo"><div class="pouch-herbs">HERBS</div><div class="pouch-line"></div><div class="pouch-name">${label}</div><div class="pouch-weight">200 g</div><div class="pouch-bottom">NATURAL COLLECTION</div></div><div class="botanical">✦</div></div>`;
+let cart=[], filter="all";
+const $=x=>document.getElementById(x);
+function art(p){
+  return `<div class="card-art">
+    <img class="product-pouch-image" src="assets/products/${p[5]}" alt="Earthymic ${p[1]} 200 g">
+    <span class="weight">200 g</span>
+  </div>`;
 }
 function render(){
- let list=[...products];
- const q=document.getElementById('search').value.toLowerCase();
- if(q) list=list.filter(p=>(p.name+' '+p.desc).toLowerCase().includes(q));
- const s=document.getElementById('sort').value;
- if(s==='low') list.sort((a,b)=>+a.price.replace('₹','')-+b.price.replace('₹',''));
- if(s==='high') list.sort((a,b)=>+b.price.replace('₹','')-+a.price.replace('₹',''));
- grid.innerHTML=list.map((p,i)=>`<article class="card"><button class="wish">♡</button>${pouch(p.label)}<div class="card-body"><span class="tag">${p.category}</span><h3>${p.name}</h3><p>${p.desc}</p><div class="card-bottom"><strong>${p.price}</strong><button class="add" onclick="addToCart(${products.indexOf(p)})">Add to cart</button></div></div></article>`).join('');
+ let q=$("search").value.toLowerCase();
+ let list=products.filter(p=>(filter==="all"||p[2]===filter)&&(p[0]+" "+p[4]).toLowerCase().includes(q));
+ $("products").innerHTML=list.map(p=>`<article class="card">${art(p)}<div class="card-body"><small>${p[2].toUpperCase()}</small><h3>${p[0]}</h3><p>${p[4]}</p><div class="card-bottom"><strong>₹${p[3]}</strong><button onclick="add('${p[0]}')">ADD TO CART</button></div></div></article>`).join("");
 }
-function addToCart(i){cart.push(products[i]); updateCart();}
+function add(name){let p=products.find(x=>x[0]===name);cart.push(p);updateCart();openCart()}
 function updateCart(){
- document.getElementById('cartCount').textContent=cart.length;
- document.getElementById('cartItems').innerHTML=cart.length?cart.map((p,i)=>`<div class="cart-item"><div>${p.name}</div><strong>${p.price}</strong><button onclick="cart.splice(${i},1);updateCart()">×</button></div>`).join(''):'<p class="muted">Your cart is empty.</p>';
- document.getElementById('cartTotal').textContent='₹'+cart.reduce((s,p)=>s+Number(p.price.replace('₹','')),0);
+ $("cartItems").innerHTML=cart.length?cart.map((p,i)=>`<div class="cart-item"><span>${p[0]}<small>200 g</small></span><b>₹${p[3]}</b><button onclick="cart.splice(${i},1);updateCart()">×</button></div>`).join(""):"<p>Your cart is empty.</p>";
+ $("cartCount").textContent=cart.length;
+ $("total").textContent="₹"+cart.reduce((s,p)=>s+p[3],0);
 }
-function openCart(){document.getElementById('cart').classList.add('open');document.getElementById('overlay').classList.remove('hidden')}
-function closeCart(){document.getElementById('cart').classList.remove('open');document.getElementById('overlay').classList.add('hidden')}
-document.getElementById('cartBtn').onclick=openCart; document.getElementById('closeCart').onclick=closeCart; document.getElementById('overlay').onclick=closeCart;
-document.getElementById('search').oninput=render; document.getElementById('sort').onchange=render;
-document.getElementById('searchBtn').onclick=()=>{document.getElementById('search').focus();document.getElementById('herbs').scrollIntoView({behavior:'smooth'})};
-document.getElementById('enquireCart').onclick=()=>{document.getElementById('contact').scrollIntoView({behavior:'smooth'});closeCart()};
-document.getElementById('enquiryForm').onsubmit=e=>{e.preventDefault();alert('Demo enquiry submitted. Connect this form to WhatsApp, email or your backend before launch.');e.target.reset()};
+function openCart(){$("cart").classList.add("open");$("backdrop").classList.add("show")}
+function closeCart(){$("cart").classList.remove("open");$("backdrop").classList.remove("show")}
+$("cartBtn").onclick=openCart;$("closeCart").onclick=closeCart;$("backdrop").onclick=closeCart;
+$("searchBtn").onclick=()=>{document.querySelector("#herbs").scrollIntoView({behavior:"smooth"});setTimeout(()=>$("search").focus(),400)};
+$("search").oninput=render;
+document.querySelectorAll(".filter").forEach(b=>b.onclick=()=>{document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));b.classList.add("active");filter=b.dataset.filter;render()});
+$("menuBtn").onclick=()=>document.querySelector("#nav").classList.toggle("show");
+$("cartEnquiry").onclick=()=>{closeCart();document.querySelector("#contact").scrollIntoView({behavior:"smooth"})};
+$("form").onsubmit=e=>{e.preventDefault();alert("Demo enquiry submitted. Connect this form to WhatsApp/email before launch.");e.target.reset()};
 render();updateCart();
 </script>
 </body>
