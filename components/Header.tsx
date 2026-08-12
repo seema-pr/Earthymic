@@ -25,8 +25,8 @@ export default function Header({ onCartOpen }: HeaderProps) {
     <header className="sticky top-0 z-50 border-b border-stone-200/70 bg-[#f8f6f0]/95 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
         {/* Logo */}
-        <a
-          href="#home"
+        <Link
+          href="/"
           className="flex items-center"
           aria-label="Earthymic home"
         >
@@ -35,18 +35,18 @@ export default function Header({ onCartOpen }: HeaderProps) {
             alt="Earthymic"
             className="h-24 w-[100px] object-contain"
           />
-        </a>
+        </Link>
 
         {/* Desktop navigation */}
         <nav className="hidden items-center gap-10 md:flex">
           {navigation.map((item) => (
-            <a
+            <Link
               key={item.label}
               href={item.href}
               className="text-sm font-medium tracking-[0.08em] text-stone-700 transition-colors hover:text-stone-950"
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -74,6 +74,7 @@ export default function Header({ onCartOpen }: HeaderProps) {
               {cartCount}
             </span>
           </button>
+
           {/* Account */}
           <Link
             href={isAuthenticated ? '/account' : '/login'}
@@ -104,15 +105,16 @@ export default function Header({ onCartOpen }: HeaderProps) {
         <nav className="border-t border-stone-200/70 bg-[#f8f6f0] px-5 py-5 md:hidden">
           <div className="flex flex-col gap-5">
             {navigation.map((item) => (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
                 className="text-sm font-medium uppercase tracking-[0.12em] text-stone-700"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
+
             <Link
               href={isAuthenticated ? '/account' : '/login'}
               onClick={() => setMenuOpen(false)}
