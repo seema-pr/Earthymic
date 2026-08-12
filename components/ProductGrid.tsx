@@ -2,28 +2,25 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { Search } from 'lucide-react'
 import { products, type ProductCategory } from '@/data/products'
 import { useCart } from '@/components/CartProvider'
 
-type ProductGridProps = {
-  searchQuery?: string
-}
-
-export default function ProductGrid({
-  searchQuery = '',
-}: ProductGridProps) {
+export default function ProductGrid() {
   const { addToCart } = useCart()
 
-  const [selectedCategory, setSelectedCategory] =
-    useState<ProductCategory | 'all'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const [selectedCategory, setSelectedCategory] = useState<
+    ProductCategory | 'all'
+  >('all')
 
   const filteredProducts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
     return products.filter((product) => {
       const matchesCategory =
-        selectedCategory === 'all' ||
-        product.category === selectedCategory
+        selectedCategory === 'all' || product.category === selectedCategory
 
       const matchesSearch =
         !query ||
@@ -36,8 +33,33 @@ export default function ProductGrid({
   }, [selectedCategory, searchQuery])
 
   return (
-    <section className="px-5 py-12">
+    <section id="shop" className="px-5 py-12">
       <div className="mx-auto max-w-7xl">
+        {/* Shop Header */}
+        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-[#173b25]">Shop</h2>
+
+            <p className="mt-1 text-sm text-stone-500">Explore our products</p>
+          </div>
+
+          {/* Search */}
+          <div className="relative w-full sm:w-80">
+            <Search
+              size={18}
+              strokeWidth={1.7}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"
+            />
+
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search products..."
+              className="w-full rounded-full border border-stone-200 bg-white py-3 pl-11 pr-4 text-sm text-stone-900 outline-none transition focus:border-[#173b25]"
+            />
+          </div>
+        </div>
 
         {/* Categories */}
         <div className="mb-8 flex flex-wrap gap-3">
@@ -95,7 +117,7 @@ export default function ProductGrid({
           {filteredProducts.map((product) => (
             <article
               key={product.id}
-              className="group overflow-hidden rounded-2xl bg-white shadow-sm"
+              className="group overflow-hidden rounded-2xl bg-[#f8f6f0] shadow-sm"
             >
               <Link href={`/products/${product.id}`}>
                 <div className="aspect-square overflow-hidden bg-stone-100">
@@ -134,12 +156,10 @@ export default function ProductGrid({
           ))}
         </div>
 
+        {/* No Results */}
         {filteredProducts.length === 0 && (
-          <p className="py-12 text-center text-stone-500">
-            No products found.
-          </p>
+          <p className="py-12 text-center text-stone-500">No products found.</p>
         )}
-
       </div>
     </section>
   )

@@ -23,10 +23,10 @@ export default function Header({ onCartOpen }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-stone-200/70 bg-[#f8f6f0]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
+      <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
         {/* Logo */}
-        <Link
-          href="/"
+        <a
+          href="#home"
           className="flex items-center"
           aria-label="Earthymic home"
         >
@@ -35,32 +35,23 @@ export default function Header({ onCartOpen }: HeaderProps) {
             alt="Earthymic"
             className="h-24 w-[100px] object-contain"
           />
-        </Link>
+        </a>
 
         {/* Desktop navigation */}
         <nav className="hidden items-center gap-10 md:flex">
           {navigation.map((item) => (
-            <Link
+            <a
               key={item.label}
               href={item.href}
               className="text-sm font-medium tracking-[0.08em] text-stone-700 transition-colors hover:text-stone-950"
             >
               {item.label}
-            </Link>
+            </a>
           ))}
         </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* Search */}
-          <button
-            type="button"
-            aria-label="Search"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-stone-700 transition-colors hover:bg-stone-200/60 hover:text-stone-950"
-          >
-            <Search size={20} strokeWidth={1.7} />
-          </button>
-
           {/* Shopping cart */}
           <button
             type="button"
@@ -74,7 +65,6 @@ export default function Header({ onCartOpen }: HeaderProps) {
               {cartCount}
             </span>
           </button>
-
           {/* Account */}
           <Link
             href={isAuthenticated ? '/account' : '/login'}
@@ -105,16 +95,15 @@ export default function Header({ onCartOpen }: HeaderProps) {
         <nav className="border-t border-stone-200/70 bg-[#f8f6f0] px-5 py-5 md:hidden">
           <div className="flex flex-col gap-5">
             {navigation.map((item) => (
-              <Link
+              <a
                 key={item.label}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
                 className="text-sm font-medium uppercase tracking-[0.12em] text-stone-700"
               >
                 {item.label}
-              </Link>
+              </a>
             ))}
-
             <Link
               href={isAuthenticated ? '/account' : '/login'}
               onClick={() => setMenuOpen(false)}

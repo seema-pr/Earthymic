@@ -38,14 +38,12 @@ export default function ProductDetailsPage() {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-10 md:grid-cols-2">
           {/* Product Image */}
-          <div className="overflow-hidden rounded-3xl bg-white">
-            <div className="aspect-square">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="h-full w-full object-contain"
-              />
-            </div>
+          <div className="flex h-[calc(100vh-160px)] min-h-[400px] items-center justify-center overflow-hidden rounded-3xl">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="h-full w-full object-contain"
+            />
           </div>
 
           {/* Product Details */}
