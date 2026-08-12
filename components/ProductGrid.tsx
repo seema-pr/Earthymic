@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { products, type ProductCategory } from '@/data/products'
+import { useCart } from '@/components/CartProvider'
 
 const filters: {
   label: string
@@ -15,6 +16,8 @@ const filters: {
 ]
 
 export default function ProductGrid() {
+  const { addToCart, cartCount } = useCart()
+
   const [category, setCategory] = useState<ProductCategory | 'all'>('all')
 
   const [search, setSearch] = useState('')
@@ -116,6 +119,7 @@ export default function ProductGrid() {
                   <button
                     type="button"
                     className="rounded-full bg-stone-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-stone-700"
+                    onClick={() => addToCart(product)}
                   >
                     Add to Cart
                   </button>
