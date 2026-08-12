@@ -3,10 +3,35 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
-import { products, type ProductCategory } from '@/data/products'
 import { useCart } from '@/components/CartProvider'
 
-export default function ProductGrid() {
+type ProductCategory = 'hair' | 'skin' | 'wellness'
+
+type DatabaseProduct = {
+  id: string
+  name: string
+  slug: string
+  label: string | null
+  description: string
+  price: number | string
+  image: string | null
+  images: string[]
+  weight: string | null
+  subCategory: {
+    name: string
+    slug: string
+    category: {
+      name: string
+      slug: string
+    }
+  }
+}
+
+export default function ProductGrid({
+  products,
+}: {
+  products: DatabaseProduct[]
+}) {
   const { addToCart } = useCart()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -19,18 +44,30 @@ export default function ProductGrid() {
     const query = searchQuery.trim().toLowerCase()
 
     return products.filter((product) => {
+      /*
+       * Your database structure is:
+       *
+       * Product
+       *   └── subCategory
+       *         └── category
+       *
+       * Hair and Skin are subcategories in your current database,
+       * so we use subCategory.slug for the filter.
+       */
+      const categorySlug = product.subCategory.slug
+
       const matchesCategory =
-        selectedCategory === 'all' || product.category === selectedCategory
+        selectedCategory === 'all' || categorySlug === selectedCategory
 
       const matchesSearch =
         !query ||
         product.name.toLowerCase().includes(query) ||
-        product.label.toLowerCase().includes(query) ||
+        (product.label?.toLowerCase().includes(query) ?? false) ||
         product.description.toLowerCase().includes(query)
 
       return matchesCategory && matchesSearch
     })
-  }, [selectedCategory, searchQuery])
+  }, [products, selectedCategory, searchQuery])
 
   return (
     <section id="shop" className="px-5 py-12">
@@ -63,6 +100,7 @@ export default function ProductGrid() {
 
         {/* Categories */}
         <div className="mb-8 flex flex-wrap gap-3">
+          {/* All */}
           <button
             type="button"
             onClick={() => setSelectedCategory('all')}
@@ -75,6 +113,7 @@ export default function ProductGrid() {
             All
           </button>
 
+          {/* Hair */}
           <button
             type="button"
             onClick={() => setSelectedCategory('hair')}
@@ -87,6 +126,7 @@ export default function ProductGrid() {
             Hair
           </button>
 
+          {/* Skin */}
           <button
             type="button"
             onClick={() => setSelectedCategory('skin')}
@@ -99,6 +139,7 @@ export default function ProductGrid() {
             Skin
           </button>
 
+          {/* Wellness */}
           <button
             type="button"
             onClick={() => setSelectedCategory('wellness')}
@@ -119,30 +160,36 @@ export default function ProductGrid() {
               key={product.id}
               className="group overflow-hidden rounded-2xl bg-[#f8f6f0] shadow-sm"
             >
-              <Link href={`/products/${product.id}`}>
+              {/* Product */}
+              <Link href={`/products/${product.slug}`}>
+                {/* Image */}
                 <div className="aspect-square overflow-hidden bg-stone-100">
                   <img
-                    src={product.image}
+                    src={product.image ?? '/assets/products/placeholder.png'}
                     alt={product.name}
                     className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
                   />
                 </div>
 
+                {/* Product Information */}
                 <div className="p-4">
-                  <p className="text-xs uppercase tracking-wide text-stone-500">
-                    {product.label}
-                  </p>
+                  {product.label && (
+                    <p className="text-xs uppercase tracking-wide text-stone-500">
+                      {product.label}
+                    </p>
+                  )}
 
                   <h3 className="mt-1 font-medium text-stone-900">
                     {product.name}
                   </h3>
 
                   <p className="mt-2 font-semibold text-[#173b25]">
-                    ₹{product.price.toFixed(2)}
+                    ₹{Number(product.price).toFixed(2)}
                   </p>
                 </div>
               </Link>
 
+              {/* Add To Cart */}
               <div className="px-4 pb-4">
                 <button
                   type="button"
