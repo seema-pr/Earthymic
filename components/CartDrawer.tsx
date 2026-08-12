@@ -23,6 +23,9 @@ export default function CartDrawer({
     clearCart,
   } = useCart()
 
+  const gst = cartTotal * 0.18
+  const shipping = cartTotal >= 999 ? 0 : 50
+  const grandTotal = cartTotal + gst + shipping
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -44,21 +47,7 @@ export default function CartDrawer({
       />
 
       {/* Cart panel */}
-      <aside
-        className="
-          absolute
-          right-0
-          top-0
-          flex
-          h-full
-          w-full
-          max-w-[430px]
-          flex-col
-          bg-[#faf9f4]
-          shadow-2xl
-        "
-        aria-label="Shopping cart"
-      >
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-[#f8f6f0] shadow-2xl">
 
         {/* Header */}
         <div className="
@@ -428,33 +417,47 @@ export default function CartDrawer({
             py-5
           ">
 
-            <div className="
-              flex
-              items-center
-              justify-between
-            ">
-              <span className="text-sm text-stone-500">
-                Subtotal
-              </span>
+            <div className="space-y-3">
 
-              <span className="
-                text-xl
-                font-medium
-                text-stone-900
-              ">
-                ₹{cartTotal}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-stone-500">
+                  Subtotal
+                </span>
+                <span className="text-sm font-medium text-stone-900">
+                  ₹{cartTotal.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-stone-500">
+                  GST (18%)
+                </span>
+                <span className="text-sm font-medium text-stone-900">
+                  ₹{gst.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-stone-500">
+                  Shipping
+                </span>
+                <span className="text-sm font-medium text-stone-900">
+                  {shipping === 0 ? 'FREE' : `₹${shipping.toFixed(2)}`}
+                </span>
+              </div>
+
+              <div className="border-t border-stone-200 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-medium text-stone-900">
+                    Grand Total
+                  </span>
+                  <span className="text-xl font-semibold text-[#173b25]">
+                    ₹{grandTotal.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
             </div>
-
-            <p className="
-              mt-2
-              text-xs
-              leading-5
-              text-stone-500
-            ">
-              Shipping and taxes will be calculated
-              at checkout.
-            </p>
 
             <button
               type="button"
@@ -470,6 +473,9 @@ export default function CartDrawer({
                 transition
                 hover:bg-[#245534]
               "
+              onClick={() => {
+                window.location.href = '/checkout'
+              }}
             >
               Proceed to Checkout
             </button>
