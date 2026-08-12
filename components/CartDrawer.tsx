@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
 import { Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react'
 import { useCart } from '@/components/CartProvider'
+import { useRouter } from 'next/navigation'
 
 type CartDrawerProps = {
   open: boolean
@@ -15,6 +16,7 @@ export default function CartDrawer({
   open,
   onClose,
 }: CartDrawerProps) {
+  const router = useRouter()
   const {
     cartItems,
     removeFromCart,
@@ -427,58 +429,29 @@ export default function CartDrawer({
                   ₹{cartTotal.toFixed(2)}
                 </span>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-stone-500">
-                  GST (18%)
-                </span>
-                <span className="text-sm font-medium text-stone-900">
-                  ₹{gst.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-stone-500">
-                  Shipping
-                </span>
-                <span className="text-sm font-medium text-stone-900">
-                  {shipping === 0 ? 'FREE' : `₹${shipping.toFixed(2)}`}
-                </span>
-              </div>
-
-              <div className="border-t border-stone-200 pt-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-medium text-stone-900">
-                    Grand Total
-                  </span>
-                  <span className="text-xl font-semibold text-[#173b25]">
-                    ₹{grandTotal.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
             </div>
 
             <button
-              type="button"
-              className="
-                mt-4
-                w-full
-                rounded-full
-                bg-[#173b25]
-                py-3.5
-                text-sm
-                font-medium
-                text-white
-                transition
-                hover:bg-[#245534]
-              "
-              onClick={() => {
-                window.location.href = '/checkout'
-              }}
-            >
-              Proceed to Checkout
-            </button>
+            type="button"
+            onClick={() => {
+              onClose()
+              router.push('/checkout')
+            }}
+            className="
+              mt-4
+              w-full
+              rounded-full
+              bg-[#173b25]
+              py-3.5
+              text-sm
+              font-medium
+              text-white
+              transition
+              hover:bg-[#245534]
+            "
+          >
+            Proceed to Checkout
+          </button>
 
             <button
               type="button"

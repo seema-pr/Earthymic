@@ -150,10 +150,13 @@ export default function CheckoutPage() {
 
               <button
                 type="button"
+                onClick={() => {
+                window.location.href = '/order-success'
+                }}
                 className="mt-4 w-full rounded-full bg-[#173b25] py-3.5 text-sm font-medium text-white transition hover:bg-[#245534]"
-              >
+                >
                 Place Order
-              </button>
+                </button>
 
             </div>
           </section>
