@@ -3,7 +3,6 @@
 import { Search, ShoppingBag, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { useCart } from '@/components/CartProvider'
-import CartDrawer from '@/components/CartDrawer'
 
 const navigation = [
   { label: 'Shop', href: '#shop' },
@@ -11,7 +10,11 @@ const navigation = [
   { label: 'Contact', href: '#contact' },
 ]
 
-export default function Header() {
+type HeaderProps = {
+  onCartOpen: () => void
+}
+
+export default function Header({ onCartOpen }: HeaderProps) {
   const { cartCount } = useCart()
   const [cartOpen, setCartOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -60,7 +63,7 @@ export default function Header() {
           <button
             type="button"
             aria-label="Shopping cart"
-            onClick={() => setCartOpen(true)}
+            onClick={onCartOpen}
             className="relative flex h-10 w-10 items-center justify-center rounded-full text-stone-700 transition-colors hover:bg-stone-200/60 hover:text-stone-950"
           >
             <ShoppingBag size={20} strokeWidth={1.7} />
@@ -104,8 +107,7 @@ export default function Header() {
         </nav>
       )}
 
-      {/* Cart drawer */}
-      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+      
     </header>
   )
 }

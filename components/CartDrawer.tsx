@@ -1,6 +1,9 @@
 'use client'
 
 import Image from 'next/image'
+import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
+import { Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react'
 import { useCart } from '@/components/CartProvider'
 
 type CartDrawerProps = {
@@ -8,119 +11,512 @@ type CartDrawerProps = {
   onClose: () => void
 }
 
-export default function CartDrawer({ open, onClose }: CartDrawerProps) {
-  const { cartItems, removeFromCart, updateQuantity, cartTotal, clearCart } =
-    useCart()
+export default function CartDrawer({
+  open,
+  onClose,
+}: CartDrawerProps) {
+  const {
+    cartItems,
+    removeFromCart,
+    updateQuantity,
+    cartTotal,
+    clearCart,
+  } = useCart()
 
-  if (!open) return null
+  const [mounted, setMounted] = useState(false)
 
-  return (
-    <div className="fixed inset-0 z-50">
-      <button
-        type="button"
-        aria-label="Close cart"
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted || !open) {
+    return null
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999]">
+
+      {/* Background overlay */}
+      <div
+        className="absolute inset-0 bg-black/35"
         onClick={onClose}
-        className="absolute inset-0 bg-black/30"
+        aria-hidden="true"
       />
 
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-stone-200 px-6 py-5">
-          <h2 className="text-lg font-medium text-stone-900">Your Cart</h2>
+      {/* Cart panel */}
+      <aside
+        className="
+          absolute
+          right-0
+          top-0
+          flex
+          h-full
+          w-full
+          max-w-[430px]
+          flex-col
+          bg-[#faf9f4]
+          shadow-2xl
+        "
+        aria-label="Shopping cart"
+      >
+
+        {/* Header */}
+        <div className="
+          flex
+          shrink-0
+          items-center
+          justify-between
+          border-b
+          border-stone-200
+          bg-white
+          px-6
+          py-5
+        ">
+
+          <div className="flex items-center gap-3">
+
+            <div className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              bg-[#e8efdc]
+              text-[#173b25]
+            ">
+              <ShoppingBag
+                size={19}
+                strokeWidth={1.7}
+              />
+            </div>
+
+            <div>
+              <h2 className="text-lg font-medium text-stone-900">
+                Your Cart
+              </h2>
+
+              <p className="text-xs text-stone-500">
+                {cartItems.length === 0
+                  ? 'Your cart is empty'
+                  : `${cartItems.length} item${
+                      cartItems.length > 1 ? 's' : ''
+                    }`}
+              </p>
+            </div>
+
+          </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-stone-500 hover:text-stone-900"
+            aria-label="Close cart"
+            className="
+              flex
+              h-9
+              w-9
+              items-center
+              justify-center
+              rounded-full
+              text-stone-500
+              transition
+              hover:bg-stone-100
+              hover:text-stone-900
+            "
           >
-            Close
+            <X
+              size={20}
+              strokeWidth={1.7}
+            />
           </button>
+
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        {/* Cart items */}
+        <div className="
+          flex-1
+          overflow-y-auto
+          px-5
+          py-5
+        ">
+
           {cartItems.length === 0 ? (
-            <p className="py-10 text-center text-sm text-stone-500">
-              Your cart is empty.
-            </p>
+
+            <div className="
+              flex
+              h-full
+              flex-col
+              items-center
+              justify-center
+              text-center
+            ">
+
+              <div className="
+                flex
+                h-20
+                w-20
+                items-center
+                justify-center
+                rounded-full
+                bg-[#e8efdc]
+                text-[#173b25]
+              ">
+                <ShoppingBag
+                  size={30}
+                  strokeWidth={1.5}
+                />
+              </div>
+
+              <h3 className="
+                mt-5
+                text-lg
+                font-medium
+                text-stone-900
+              ">
+                Your cart is empty
+              </h3>
+
+              <p className="
+                mt-2
+                max-w-[270px]
+                text-sm
+                leading-6
+                text-stone-500
+              ">
+                Explore our natural herbs and discover
+                something you'll love.
+              </p>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="
+                  mt-6
+                  rounded-full
+                  bg-[#173b25]
+                  px-7
+                  py-3
+                  text-sm
+                  font-medium
+                  text-white
+                  transition
+                  hover:bg-[#245534]
+                "
+              >
+                Continue Shopping
+              </button>
+
+            </div>
+
           ) : (
-            <div className="space-y-5">
+
+            <div className="space-y-4">
+
               {cartItems.map((item) => (
+
                 <div
                   key={item.id}
-                  className="flex gap-4 border-b border-stone-100 pb-5"
+                  className="
+                    rounded-2xl
+                    border
+                    border-stone-200
+                    bg-white
+                    p-4
+                  "
                 >
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-stone-100">
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      sizes="80px"
-                      className="object-contain p-2"
-                    />
-                  </div>
 
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-medium text-stone-900">{item.name}</h3>
+                  <div className="flex gap-4">
 
-                    <p className="mt-1 text-sm text-stone-500">₹{item.price}</p>
+                    {/* Product image */}
+                    <div className="
+                      relative
+                      h-[100px]
+                      w-[90px]
+                      shrink-0
+                      overflow-hidden
+                      rounded-xl
+                      bg-[#f5f3eb]
+                    ">
 
-                    <div className="mt-3 flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateQuantity(item.id, item.quantity - 1)
-                        }
-                        className="h-7 w-7 rounded-full bg-stone-100"
-                      >
-                        -
-                      </button>
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        sizes="90px"
+                        className="object-contain"
+                      />
 
-                      <span className="text-sm">{item.quantity}</span>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateQuantity(item.id, item.quantity + 1)
-                        }
-                        className="h-7 w-7 rounded-full bg-stone-100"
-                      >
-                        +
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(item.id)}
-                        className="ml-auto text-xs text-red-500"
-                      >
-                        Remove
-                      </button>
                     </div>
+
+                    {/* Product information */}
+                    <div className="min-w-0 flex-1">
+
+                      <div className="
+                        flex
+                        items-start
+                        justify-between
+                        gap-3
+                      ">
+
+                        <div className="min-w-0">
+
+                          <p className="
+                            text-[10px]
+                            font-medium
+                            uppercase
+                            tracking-[0.18em]
+                            text-stone-400
+                          ">
+                            Earthymic
+                          </p>
+
+                          <h3 className="
+                            mt-1
+                            truncate
+                            text-sm
+                            font-medium
+                            text-stone-900
+                          ">
+                            {item.name}
+                          </h3>
+
+                          <p className="
+                            mt-1
+                            text-sm
+                            font-medium
+                            text-[#173b25]
+                          ">
+                            ₹{item.price}
+                          </p>
+
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeFromCart(item.id)
+                          }
+                          aria-label={`Remove ${item.name}`}
+                          className="
+                            flex
+                            h-8
+                            w-8
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-full
+                            text-stone-400
+                            transition
+                            hover:bg-red-50
+                            hover:text-red-500
+                          "
+                        >
+                          <Trash2
+                            size={15}
+                            strokeWidth={1.6}
+                          />
+                        </button>
+
+                      </div>
+
+                      {/* Quantity */}
+                      <div className="
+                        mt-4
+                        flex
+                        items-center
+                        justify-between
+                      ">
+
+                        <div className="
+                          flex
+                          items-center
+                          rounded-full
+                          border
+                          border-stone-200
+                          bg-stone-50
+                        ">
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateQuantity(
+                                item.id,
+                                item.quantity - 1
+                              )
+                            }
+                            className="
+                              flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-full
+                              text-stone-600
+                              hover:bg-stone-200
+                            "
+                          >
+                            <Minus size={13} />
+                          </button>
+
+                          <span className="
+                            w-8
+                            text-center
+                            text-sm
+                            font-medium
+                            text-stone-800
+                          ">
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateQuantity(
+                                item.id,
+                                item.quantity + 1
+                              )
+                            }
+                            className="
+                              flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-full
+                              text-stone-600
+                              hover:bg-stone-200
+                            "
+                          >
+                            <Plus size={13} />
+                          </button>
+
+                        </div>
+
+                        <span className="
+                          text-sm
+                          font-medium
+                          text-stone-900
+                        ">
+                          ₹{item.price * item.quantity}
+                        </span>
+
+                      </div>
+
+                    </div>
+
                   </div>
+
                 </div>
+
               ))}
+
             </div>
+
           )}
+
         </div>
 
+        {/* Bottom summary */}
         {cartItems.length > 0 && (
-          <div className="border-t border-stone-200 px-6 py-5">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-stone-500">Total</span>
 
-              <span className="text-lg font-medium text-stone-900">
+          <div className="
+            shrink-0
+            border-t
+            border-stone-200
+            bg-white
+            px-6
+            py-5
+          ">
+
+            <div className="
+              flex
+              items-center
+              justify-between
+            ">
+              <span className="text-sm text-stone-500">
+                Subtotal
+              </span>
+
+              <span className="
+                text-xl
+                font-medium
+                text-stone-900
+              ">
                 ₹{cartTotal}
               </span>
             </div>
 
+            <p className="
+              mt-2
+              text-xs
+              leading-5
+              text-stone-500
+            ">
+              Shipping and taxes will be calculated
+              at checkout.
+            </p>
+
+            <button
+              type="button"
+              className="
+                mt-4
+                w-full
+                rounded-full
+                bg-[#173b25]
+                py-3.5
+                text-sm
+                font-medium
+                text-white
+                transition
+                hover:bg-[#245534]
+              "
+            >
+              Proceed to Checkout
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="
+                mt-3
+                w-full
+                rounded-full
+                border
+                border-stone-300
+                bg-white
+                py-3
+                text-sm
+                font-medium
+                text-stone-700
+                transition
+                hover:bg-stone-50
+              "
+            >
+              Continue Shopping
+            </button>
+
             <button
               type="button"
               onClick={clearCart}
-              className="w-full rounded-full bg-stone-900 py-3 text-sm font-medium text-white hover:bg-stone-700"
+              className="
+                mt-4
+                w-full
+                text-xs
+                text-stone-400
+                transition
+                hover:text-red-500
+              "
             >
               Clear Cart
             </button>
+
           </div>
+
         )}
+
       </aside>
-    </div>
+
+    </div>,
+    document.body
   )
 }

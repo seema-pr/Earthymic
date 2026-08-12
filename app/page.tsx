@@ -1,15 +1,28 @@
+'use client'
+
+import { useState } from 'react'
 import Header from '@/components/Header'
 import Hero from '@/components/Hero'
 import ProductGrid from '@/components/ProductGrid'
+import CartDrawer from '@/components/CartDrawer'
 
+type HeaderProps = {
+  onCartOpen: () => void
+}
 export default function Home() {
+  const [cartOpen, setCartOpen] = useState(false)
+
   return (
     <>
-      <Header />
+      <Header onCartOpen={() => setCartOpen(true)} />
       <main>
         <Hero />
         <ProductGrid />
       </main>
+      <CartDrawer
+      open={cartOpen}
+      onClose={() => setCartOpen(false)}
+      />
     </>
   )
 }
