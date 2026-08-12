@@ -7,9 +7,9 @@ import { useCart } from '@/components/CartProvider'
 import { useAuth } from '@/components/AuthProvider'
 
 const navigation = [
-  { label: 'Shop', href: '#shop' },
-  { label: 'About', href: '#about' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'Shop', href: '/#shop' },
+  { label: 'About', href: '/#about' },
+  { label: 'Contact', href: '/#contact' },
 ]
 
 type HeaderProps = {
@@ -60,8 +60,6 @@ export default function Header({ onCartOpen }: HeaderProps) {
           >
             <Search size={20} strokeWidth={1.7} />
           </button>
-
-          
 
           {/* Shopping cart */}
           <button
@@ -125,8 +123,6 @@ export default function Header({ onCartOpen }: HeaderProps) {
           </div>
         </nav>
       )}
-
-      
     </header>
   )
 }

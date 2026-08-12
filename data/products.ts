@@ -1,4 +1,9 @@
-export type ProductCategory = "hair" | "skin" | "wellness";
+export type ProductCategory =
+  | "hair"
+  | "skin"
+  | "wellness"
+  | "apparel"
+  | "food";
 
 export type Product = {
   id: string;
@@ -8,6 +13,8 @@ export type Product = {
   price: number;
   description: string;
   image: string;
+  images: string[];
+  weight?: string;
 };
 
 export const products: Product[] = [
@@ -20,6 +27,8 @@ export const products: Product[] = [
     description:
       "Traditional amla powder for everyday natural routines.",
     image: "/assets/products/amla.png",
+    images: ["/assets/products/amla.png"],
+    weight: "200g",
   },
   {
     id: "ashwagandha-powder",
@@ -30,6 +39,8 @@ export const products: Product[] = [
     description:
       "Traditional botanical powder for wellness routines.",
     image: "/assets/products/ashwagandha.png",
+    images: ["/assets/products/ashwagandha.png"],
+    weight: "200g",
   },
   {
     id: "bhringraj-powder",
@@ -40,6 +51,8 @@ export const products: Product[] = [
     description:
       "A classic botanical for traditional hair-care routines.",
     image: "/assets/products/bhringraj.png",
+    images: ["/assets/products/bhringraj.png"],
+    weight: "200g",
   },
   {
     id: "hibiscus-flower",
@@ -50,6 +63,8 @@ export const products: Product[] = [
     description:
       "Dried hibiscus botanical for traditional beauty routines.",
     image: "/assets/products/hibiscus.png",
+    images: ["/assets/products/hibiscus.png"],
+    weight: "200g",
   },
   {
     id: "rosemary-leaves",
@@ -60,6 +75,8 @@ export const products: Product[] = [
     description:
       "Aromatic rosemary leaves for herbal routines.",
     image: "/assets/products/rosemary.png",
+    images: ["/assets/products/rosemary.png"],
+    weight: "200g",
   },
   {
     id: "shikakai-powder",
@@ -70,6 +87,8 @@ export const products: Product[] = [
     description:
       "Traditional botanical powder for natural hair cleansing.",
     image: "/assets/products/shikakai.png",
+    images: ["/assets/products/shikakai.png"],
+    weight: "200g",
   },
   {
     id: "reetha-whole",
@@ -80,6 +99,8 @@ export const products: Product[] = [
     description:
       "Soapnut fruit traditionally used as a natural cleanser.",
     image: "/assets/products/reetha.png",
+    images: ["/assets/products/reetha.png"],
+    weight: "200g",
   },
   {
     id: "tulsi-leaves",
@@ -90,6 +111,8 @@ export const products: Product[] = [
     description:
       "Freshly dried tulsi leaves for everyday herbal routines.",
     image: "/assets/products/tulsi.png",
+    images: ["/assets/products/tulsi.png"],
+    weight: "200g",
   },
   {
     id: "brahmi-powder",
@@ -100,6 +123,8 @@ export const products: Product[] = [
     description:
       "Traditional brahmi powder for natural routines.",
     image: "/assets/products/brahmi.png",
+    images: ["/assets/products/brahmi.png"],
+    weight: "200g",
   },
   {
     id: "multani-mitti-powder",
@@ -110,5 +135,7 @@ export const products: Product[] = [
     description:
       "Traditional mineral-rich earth powder for natural care.",
     image: "/assets/products/multani.png",
+    images: ["/assets/products/multani.png"],
+    weight: "200g",
   },
 ];
