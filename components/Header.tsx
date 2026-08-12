@@ -1,8 +1,10 @@
 'use client'
 
-import { Search, ShoppingBag, Menu, X } from 'lucide-react'
+import { Search, ShoppingBag, Menu, X, User } from 'lucide-react'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useCart } from '@/components/CartProvider'
+import { useAuth } from '@/components/AuthProvider'
 
 const navigation = [
   { label: 'Shop', href: '#shop' },
@@ -16,7 +18,7 @@ type HeaderProps = {
 
 export default function Header({ onCartOpen }: HeaderProps) {
   const { cartCount } = useCart()
-  const [cartOpen, setCartOpen] = useState(false)
+  const { isAuthenticated } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -59,6 +61,8 @@ export default function Header({ onCartOpen }: HeaderProps) {
             <Search size={20} strokeWidth={1.7} />
           </button>
 
+          
+
           {/* Shopping cart */}
           <button
             type="button"
@@ -72,6 +76,14 @@ export default function Header({ onCartOpen }: HeaderProps) {
               {cartCount}
             </span>
           </button>
+          {/* Account */}
+          <Link
+            href={isAuthenticated ? '/account' : '/login'}
+            aria-label={isAuthenticated ? 'My account' : 'Log in'}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-stone-700 transition-colors hover:bg-stone-200/60 hover:text-stone-950"
+          >
+            <User size={20} strokeWidth={1.7} />
+          </Link>
 
           {/* Mobile menu */}
           <button
@@ -103,6 +115,13 @@ export default function Header({ onCartOpen }: HeaderProps) {
                 {item.label}
               </a>
             ))}
+            <Link
+              href={isAuthenticated ? '/account' : '/login'}
+              onClick={() => setMenuOpen(false)}
+              className="text-sm font-medium uppercase tracking-[0.12em] text-stone-700"
+            >
+              {isAuthenticated ? 'My Account' : 'Login'}
+            </Link>
           </div>
         </nav>
       )}
