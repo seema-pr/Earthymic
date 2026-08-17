@@ -35,7 +35,6 @@ export default function CheckoutPage() {
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [countries, setCountries] = useState<Country[]>([])
   const [states, setStates] = useState<StateItem[]>([])
@@ -43,22 +42,33 @@ export default function CheckoutPage() {
   const [loadingCountries, setLoadingCountries] = useState(false)
   const [loadingStates, setLoadingStates] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
+
   const [addressVerified, setAddressVerified] = useState(false)
   const [verificationMessage, setVerificationMessage] = useState('')
 
   /*
-   * These values are currently used only for displaying
-   * the estimated checkout summary.
+   * Checkout summary.
    *
-   * The final amount sent to Razorpay must later be
-   * independently calculated on the server.
+   * These values are for display only.
+   * The server independently recalculates the final
+   * payment amount using the actual product prices
+   * from the database.
    */
   const gst = cartTotal * 0.18
   const shipping = cartTotal >= 999 ? 0 : 50
   const grandTotal = cartTotal + gst + shipping
 
   /*
-   * Load countries
+   * Any cart change invalidates the previous address
+   * verification because the checkout contents have changed.
+   */
+  useEffect(() => {
+    setAddressVerified(false)
+    setVerificationMessage('')
+  }, [cartItems])
+
+  /*
+   * Load countries.
    */
   useEffect(() => {
     const loadCountries = async () => {
@@ -100,7 +110,7 @@ export default function CheckoutPage() {
   }, [])
 
   /*
-   * Load states whenever country changes
+   * Load states whenever the selected country changes.
    */
   useEffect(() => {
     if (!formData.country) {
@@ -163,7 +173,6 @@ export default function CheckoutPage() {
       [name]: '',
     }))
 
-    // Any checkout data change requires validation again
     setAddressVerified(false)
     setVerificationMessage('')
   }
@@ -246,52 +255,11 @@ export default function CheckoutPage() {
     setVerificationMessage('')
   }
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required'
-    }
-
-    if (!/^[6-9]\d{9}$/.test(formData.mobile.trim())) {
-      newErrors.mobile = 'Enter a valid 10-digit mobile number'
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
-      newErrors.email = 'Enter a valid email address'
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = 'Complete address is required'
-    }
-
-    if (!formData.country) {
-      newErrors.country = 'Please select a country'
-    }
-
-    if (!formData.state) {
-      newErrors.state = 'Please select a state'
-    }
-
-    if (!formData.city.trim()) {
-      newErrors.city = 'City is required'
-    }
-
-    if (!/^\d{6}$/.test(formData.pinCode.trim())) {
-      newErrors.pinCode = 'Enter a valid 6-digit PIN code'
-    }
-
-    if (!cartItems.length) {
-      newErrors.cart = 'Your cart is empty'
-    }
-
-    setErrors(newErrors)
-
-    return Object.keys(newErrors).length === 0
-  }
-
   /*
-   * Verify address
+   * Validate customer details + address and verify the address.
+   *
+   * PAY NOW does NOT perform this validation.
+   * The customer must successfully complete this step first.
    */
   const verifyAddress = async () => {
     setVerificationMessage('')
@@ -307,7 +275,7 @@ export default function CheckoutPage() {
     const trimmedState = formData.state.trim()
     const trimmedPin = formData.pinCode.trim()
 
-    // Customer validation
+    // Customer details
     if (!trimmedFullName) {
       newErrors.fullName = 'Full name is required'
     }
@@ -320,7 +288,7 @@ export default function CheckoutPage() {
       newErrors.email = 'Enter a valid email address'
     }
 
-    // Address validation
+    // Address details
     if (!trimmedAddress) {
       newErrors.address = 'Complete address is required'
     }
@@ -341,19 +309,28 @@ export default function CheckoutPage() {
       newErrors.pinCode = 'Enter a valid 6-digit PIN code'
     }
 
+    if (!cartItems.length) {
+      newErrors.cart = 'Your cart is empty'
+    }
+
     setErrors(newErrors)
 
-    // Stop here if any validation fails
     if (Object.keys(newErrors).length > 0) {
       return
     }
 
-    // Non-India addresses: currently no PIN API verification
+    /*
+     * Non-India addresses:
+     * Full customer/address validation is performed,
+     * but India PIN API verification is not available.
+     */
     if (formData.country !== 'IN') {
       setAddressVerified(true)
+
       setVerificationMessage(
         'Address details saved. PIN verification is currently available for India.',
       )
+
       return
     }
 
@@ -374,6 +351,7 @@ export default function CheckoutPage() {
         !data[0].PostOffice?.length
       ) {
         setVerificationMessage('Invalid PIN code. Please check your address.')
+
         return
       }
 
@@ -389,6 +367,7 @@ export default function CheckoutPage() {
         setVerificationMessage(
           `PIN ${trimmedPin} belongs to ${postOffice.State}, not ${trimmedState}.`,
         )
+
         return
       }
 
@@ -407,7 +386,11 @@ export default function CheckoutPage() {
   }
 
   /*
-   * Start Razorpay payment
+   * Start Razorpay payment.
+   *
+   * Customer/address validation is intentionally NOT
+   * performed here. That responsibility belongs to
+   * VERIFY ADDRESS.
    */
   const handlePayment = async () => {
     if (!cartItems.length) {
@@ -415,6 +398,7 @@ export default function CheckoutPage() {
         ...prev,
         cart: 'Your cart is empty',
       }))
+
       return
     }
 
@@ -422,11 +406,13 @@ export default function CheckoutPage() {
       setVerificationMessage(
         'Please verify your address before placing the order.',
       )
+
       return
     }
 
     if (!window.Razorpay) {
       alert('Payment system is still loading. Please try again in a moment.')
+
       return
     }
 
@@ -434,9 +420,10 @@ export default function CheckoutPage() {
 
     try {
       /*
-       * TEMPORARY:
-       * The server route will be corrected next so that
-       * it calculates the trusted amount from cart product data.
+       * Only product IDs and quantities are sent.
+       *
+       * The server retrieves the real product prices
+       * from the database and calculates the final amount.
        */
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
@@ -470,6 +457,14 @@ export default function CheckoutPage() {
 
         order_id: data.id,
 
+        /*
+         * Razorpay success callback.
+         *
+         * The browser does NOT directly trust the payment.
+         * The payment details are sent to our server,
+         * where the Razorpay signature and payment status
+         * are independently verified.
+         */
         handler: async function (response: any) {
           try {
             setPaymentLoading(true)
@@ -539,13 +534,16 @@ export default function CheckoutPage() {
       const razorpay = new window.Razorpay(options)
 
       razorpay.on('payment.failed', function (response: any) {
-        console.error('Payment failed:', response?.error)
+        console.error('Razorpay payment failed:', response)
 
         setPaymentLoading(false)
 
-        alert(
-          response?.error?.description || 'Payment failed. Please try again.',
-        )
+        const errorMessage =
+          response?.error?.description ||
+          response?.error?.reason ||
+          'Payment failed. Please try again.'
+
+        alert(errorMessage)
       })
 
       razorpay.open()
@@ -562,30 +560,8 @@ export default function CheckoutPage() {
     }
   }
 
-  /*
-   * Validate the complete checkout form and then
-   * continue into the existing payment flow.
-   */
-  const handlePlaceOrder = async () => {
-    if (!cartItems.length) {
-      setErrors((prev) => ({
-        ...prev,
-        cart: 'Your cart is empty',
-      }))
-      return
-    }
-
-    if (!addressVerified) {
-      setVerificationMessage('Please verify your address before continuing.')
-      return
-    }
-
-    await handlePayment()
-  }
-
   return (
     <>
-      {/* Razorpay Checkout */}
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="afterInteractive"
@@ -629,6 +605,8 @@ export default function CheckoutPage() {
                     value={formData.mobile}
                     onChange={handleChange}
                     placeholder="Mobile Number"
+                    inputMode="numeric"
+                    maxLength={10}
                     className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
                   />
 
@@ -779,7 +757,7 @@ export default function CheckoutPage() {
                   {addressVerified ? 'ADDRESS VERIFIED ✓' : 'VERIFY ADDRESS'}
                 </button>
 
-                {/* Verification message */}
+                {/* Verification Message */}
                 {verificationMessage && (
                   <p
                     className={`text-sm ${
@@ -862,15 +840,12 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   disabled={
-                    !addressVerified ||
-                    paymentLoading ||
-                    isSubmitting ||
-                    cartItems.length === 0
+                    !addressVerified || paymentLoading || cartItems.length === 0
                   }
-                  onClick={handlePlaceOrder}
+                  onClick={handlePayment}
                   className="mt-4 w-full rounded-full bg-[#173b25] py-3.5 text-sm font-medium text-white transition hover:bg-[#245534] disabled:cursor-not-allowed disabled:bg-stone-300"
                 >
-                  {paymentLoading || isSubmitting
+                  {paymentLoading
                     ? 'OPENING PAYMENT...'
                     : addressVerified
                       ? 'PAY NOW'
