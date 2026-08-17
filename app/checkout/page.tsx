@@ -21,6 +21,8 @@ declare global {
 }
 
 export default function CheckoutPage() {
+  const { cartItems, cartTotal } = useCart()
+
   const [formData, setFormData] = useState({
     fullName: '',
     mobile: '',
@@ -35,24 +37,22 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { cartItems, cartTotal } = useCart()
-
   const [countries, setCountries] = useState<Country[]>([])
   const [states, setStates] = useState<StateItem[]>([])
-
-  const [country, setCountry] = useState('')
-  const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
-  const [pinCode, setPinCode] = useState('')
 
   const [loadingCountries, setLoadingCountries] = useState(false)
   const [loadingStates, setLoadingStates] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
-
   const [addressVerified, setAddressVerified] = useState(false)
   const [verificationMessage, setVerificationMessage] = useState('')
 
+  /*
+   * These values are currently used only for displaying
+   * the estimated checkout summary.
+   *
+   * The final amount sent to Razorpay must later be
+   * independently calculated on the server.
+   */
   const gst = cartTotal * 0.18
   const shipping = cartTotal >= 999 ? 0 : 50
   const grandTotal = cartTotal + gst + shipping
@@ -103,7 +103,7 @@ export default function CheckoutPage() {
    * Load states whenever country changes
    */
   useEffect(() => {
-    if (!country) {
+    if (!formData.country) {
       setStates([])
       return
     }
@@ -121,7 +121,7 @@ export default function CheckoutPage() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              iso2: country,
+              iso2: formData.country,
             }),
           },
         )
@@ -146,7 +146,7 @@ export default function CheckoutPage() {
     }
 
     loadStates()
-  }, [country])
+  }, [formData.country])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -162,6 +162,88 @@ export default function CheckoutPage() {
       ...prev,
       [name]: '',
     }))
+
+    // Any checkout data change requires validation again
+    setAddressVerified(false)
+    setVerificationMessage('')
+  }
+
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedCountry = e.target.value
+
+    setFormData((prev) => ({
+      ...prev,
+      country: selectedCountry,
+      state: '',
+      city: '',
+      pinCode: '',
+    }))
+
+    setErrors((prev) => ({
+      ...prev,
+      country: '',
+      state: '',
+      city: '',
+      pinCode: '',
+    }))
+
+    setAddressVerified(false)
+    setVerificationMessage('')
+  }
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedState = e.target.value
+
+    setFormData((prev) => ({
+      ...prev,
+      state: selectedState,
+      city: '',
+      pinCode: '',
+    }))
+
+    setErrors((prev) => ({
+      ...prev,
+      state: '',
+      city: '',
+      pinCode: '',
+    }))
+
+    setAddressVerified(false)
+    setVerificationMessage('')
+  }
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedCity = e.target.value
+
+    setFormData((prev) => ({
+      ...prev,
+      city: selectedCity,
+    }))
+
+    setErrors((prev) => ({
+      ...prev,
+      city: '',
+    }))
+
+    setAddressVerified(false)
+    setVerificationMessage('')
+  }
+
+  const handlePinCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '')
+
+    setFormData((prev) => ({
+      ...prev,
+      pinCode: value,
+    }))
+
+    setErrors((prev) => ({
+      ...prev,
+      pinCode: '',
+    }))
+
+    setAddressVerified(false)
+    setVerificationMessage('')
   }
 
   const validateForm = () => {
@@ -171,11 +253,11 @@ export default function CheckoutPage() {
       newErrors.fullName = 'Full name is required'
     }
 
-    if (!/^[6-9]\d{9}$/.test(formData.mobile)) {
+    if (!/^[6-9]\d{9}$/.test(formData.mobile.trim())) {
       newErrors.mobile = 'Enter a valid 10-digit mobile number'
     }
 
-    if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+    if (!/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
       newErrors.email = 'Enter a valid email address'
     }
 
@@ -195,8 +277,12 @@ export default function CheckoutPage() {
       newErrors.city = 'City is required'
     }
 
-    if (!/^\d{6}$/.test(formData.pinCode)) {
+    if (!/^\d{6}$/.test(formData.pinCode.trim())) {
       newErrors.pinCode = 'Enter a valid 6-digit PIN code'
+    }
+
+    if (!cartItems.length) {
+      newErrors.cart = 'Your cart is empty'
     }
 
     setErrors(newErrors)
@@ -211,46 +297,63 @@ export default function CheckoutPage() {
     setVerificationMessage('')
     setAddressVerified(false)
 
-    const trimmedAddress = address.trim()
-    const trimmedCity = city.trim()
-    const trimmedState = state.trim()
-    const trimmedPin = pinCode.trim()
+    const newErrors: Record<string, string> = {}
 
-    if (!country) {
-      setVerificationMessage('Please select your country.')
-      return
+    const trimmedFullName = formData.fullName.trim()
+    const trimmedMobile = formData.mobile.trim()
+    const trimmedEmail = formData.email.trim()
+    const trimmedAddress = formData.address.trim()
+    const trimmedCity = formData.city.trim()
+    const trimmedState = formData.state.trim()
+    const trimmedPin = formData.pinCode.trim()
+
+    // Customer validation
+    if (!trimmedFullName) {
+      newErrors.fullName = 'Full name is required'
+    }
+
+    if (!/^[6-9]\d{9}$/.test(trimmedMobile)) {
+      newErrors.mobile = 'Enter a valid 10-digit mobile number'
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+      newErrors.email = 'Enter a valid email address'
+    }
+
+    // Address validation
+    if (!trimmedAddress) {
+      newErrors.address = 'Complete address is required'
+    }
+
+    if (!formData.country) {
+      newErrors.country = 'Please select a country'
     }
 
     if (!trimmedState) {
-      setVerificationMessage('Please select your state.')
-      return
+      newErrors.state = 'Please select a state'
     }
 
     if (!trimmedCity) {
-      setVerificationMessage('Please enter your city.')
-      return
+      newErrors.city = 'City is required'
     }
-
-    // if (!trimmedAddress) {
-    //   setVerificationMessage('Please enter your complete address.')
-    //   return
-    // }
 
     if (!/^\d{6}$/.test(trimmedPin)) {
-      setVerificationMessage('Please enter a valid 6-digit PIN code.')
+      newErrors.pinCode = 'Enter a valid 6-digit PIN code'
+    }
+
+    setErrors(newErrors)
+
+    // Stop here if any validation fails
+    if (Object.keys(newErrors).length > 0) {
       return
     }
 
-    /*
-     * Currently our PIN verification is for India.
-     */
-    if (country !== 'IN') {
+    // Non-India addresses: currently no PIN API verification
+    if (formData.country !== 'IN') {
       setAddressVerified(true)
-
       setVerificationMessage(
         'Address details saved. PIN verification is currently available for India.',
       )
-
       return
     }
 
@@ -271,27 +374,14 @@ export default function CheckoutPage() {
         !data[0].PostOffice?.length
       ) {
         setVerificationMessage('Invalid PIN code. Please check your address.')
-
         return
       }
 
       const postOffice = data[0].PostOffice[0]
 
       const pinState = postOffice.State?.toLowerCase().trim() || ''
-
       const enteredState = trimmedState.toLowerCase()
 
-      /*
-       * State validation
-       *
-       * We intentionally do NOT compare city against District.
-       *
-       * Example:
-       * Bhubaneswar + 751019
-       * API may return District = Khorda.
-       *
-       * That does not mean Bhubaneswar is invalid.
-       */
       if (
         !pinState.includes(enteredState) &&
         !enteredState.includes(pinState)
@@ -299,7 +389,6 @@ export default function CheckoutPage() {
         setVerificationMessage(
           `PIN ${trimmedPin} belongs to ${postOffice.State}, not ${trimmedState}.`,
         )
-
         return
       }
 
@@ -317,35 +406,27 @@ export default function CheckoutPage() {
     }
   }
 
-  const handlePlaceOrder = () => {
-    const isValid = validateForm()
-
-    if (!isValid) {
-      return
-    }
-
-    console.log('Checkout form is valid', formData)
-  }
   /*
    * Start Razorpay payment
    */
   const handlePayment = async () => {
+    if (!cartItems.length) {
+      setErrors((prev) => ({
+        ...prev,
+        cart: 'Your cart is empty',
+      }))
+      return
+    }
+
     if (!addressVerified) {
       setVerificationMessage(
         'Please verify your address before placing the order.',
       )
-
-      return
-    }
-
-    if (!cartItems.length) {
-      alert('Your cart is empty.')
       return
     }
 
     if (!window.Razorpay) {
       alert('Payment system is still loading. Please try again in a moment.')
-
       return
     }
 
@@ -353,7 +434,9 @@ export default function CheckoutPage() {
 
     try {
       /*
-       * Create Razorpay order on our server
+       * TEMPORARY:
+       * The server route will be corrected next so that
+       * it calculates the trusted amount from cart product data.
        */
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
@@ -371,9 +454,6 @@ export default function CheckoutPage() {
         throw new Error(data?.error || 'Unable to create payment order.')
       }
 
-      /*
-       * Razorpay Checkout configuration
-       */
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
 
@@ -392,24 +472,28 @@ export default function CheckoutPage() {
 
           /*
            * TEMPORARY:
-           * We will add server-side payment verification
-           * before production.
+           * Do NOT consider this production-ready.
+           *
+           * Next priority step:
+           * Send razorpay_payment_id,
+           * razorpay_order_id and razorpay_signature
+           * to our server for verification.
            */
           window.location.href = '/order-success'
         },
 
         prefill: {
-          name: '',
-          email: '',
-          contact: '',
+          name: formData.fullName,
+          email: formData.email,
+          contact: formData.mobile,
         },
 
         notes: {
-          address,
-          city,
-          state,
-          country,
-          pinCode,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          country: formData.country,
+          pinCode: formData.pinCode,
         },
 
         theme: {
@@ -423,14 +507,8 @@ export default function CheckoutPage() {
         },
       }
 
-      /*
-       * Open Razorpay
-       */
       const razorpay = new window.Razorpay(options)
 
-      /*
-       * Payment failure
-       */
       razorpay.on('payment.failed', function (response: any) {
         console.error('Payment failed:', response?.error)
 
@@ -455,6 +533,27 @@ export default function CheckoutPage() {
     }
   }
 
+  /*
+   * Validate the complete checkout form and then
+   * continue into the existing payment flow.
+   */
+  const handlePlaceOrder = async () => {
+    if (!cartItems.length) {
+      setErrors((prev) => ({
+        ...prev,
+        cart: 'Your cart is empty',
+      }))
+      return
+    }
+
+    if (!addressVerified) {
+      setVerificationMessage('Please verify your address before continuing.')
+      return
+    }
+
+    await handlePayment()
+  }
+
   return (
     <>
       {/* Razorpay Checkout */}
@@ -476,161 +575,170 @@ export default function CheckoutPage() {
 
               <div className="mt-6 space-y-4">
                 {/* Full Name */}
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  placeholder="Full Name"
-                  className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
-                />
+                <div>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="Full Name"
+                    className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
+                  />
+
+                  {errors.fullName && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.fullName}
+                    </p>
+                  )}
+                </div>
 
                 {/* Mobile */}
-                <input
-                  type="tel"
-                  name="mobile"
-                  value={formData.mobile}
-                  onChange={handleChange}
-                  placeholder="Mobile Number"
-                  className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
-                />
+                <div>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="Mobile Number"
+                    className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
+                  />
+
+                  {errors.mobile && (
+                    <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
+                  )}
+                </div>
 
                 {/* Email */}
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Email Address"
-                  className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
-                />
+                <div>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Email Address"
+                    className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
+                  />
+
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  )}
+                </div>
 
                 {/* Address */}
-                <textarea
-                  name="address"
-                  placeholder="Complete Address"
-                  rows={4}
-                  value={formData.address}
-                  onChange={(e) => {
-                    handleChange(e)
-                    setAddressVerified(false)
-                    setVerificationMessage('')
-                  }}
-                  className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
-                />
+                <div>
+                  <textarea
+                    name="address"
+                    placeholder="Complete Address"
+                    rows={4}
+                    value={formData.address}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
+                  />
+
+                  {errors.address && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.address}
+                    </p>
+                  )}
+                </div>
 
                 {/* Country */}
-                <select
-                  value={country}
-                  onChange={(e) => {
-                    const selectedCountry = e.target.value
-                    setCountry(selectedCountry)
-                    setFormData((prev) => ({
-                      ...prev,
-                      country: selectedCountry,
-                      state: '',
-                      city: '',
-                      pinCode: '',
-                    }))
-                    setState('')
-                    setCity('')
-                    setPinCode('')
-                    setAddressVerified(false)
-                    setVerificationMessage('')
-                  }}
-                  disabled={loadingCountries}
-                  className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
-                >
-                  <option value="">
-                    {loadingCountries
-                      ? 'Loading countries...'
-                      : 'Select Country'}
-                  </option>
-
-                  {countries.map((item) => (
-                    <option key={item.code} value={item.code}>
-                      {item.name}
+                <div>
+                  <select
+                    name="country"
+                    value={formData.country}
+                    onChange={handleCountryChange}
+                    disabled={loadingCountries}
+                    className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
+                  >
+                    <option value="">
+                      {loadingCountries
+                        ? 'Loading countries...'
+                        : 'Select Country'}
                     </option>
-                  ))}
-                </select>
+
+                    {countries.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.country && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.country}
+                    </p>
+                  )}
+                </div>
 
                 {/* State */}
-                <select
-                  value={state}
-                  onChange={(e) => {
-                    setState(e.target.value)
-                    setCity('')
-                    setPinCode('')
-                    setAddressVerified(false)
-                    setVerificationMessage('')
-                  }}
-                  disabled={!country || loadingStates}
-                  className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
-                >
-                  <option value="">
-                    {!country
-                      ? 'Select country first'
-                      : loadingStates
-                        ? 'Loading states...'
-                        : states.length === 0
-                          ? 'No states available'
-                          : 'Select State'}
-                  </option>
-
-                  {states.map((item) => (
-                    <option key={item.name} value={item.name}>
-                      {item.name}
+                <div>
+                  <select
+                    name="state"
+                    value={formData.state}
+                    onChange={handleStateChange}
+                    disabled={!formData.country || loadingStates}
+                    className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
+                  >
+                    <option value="">
+                      {!formData.country
+                        ? 'Select country first'
+                        : loadingStates
+                          ? 'Loading states...'
+                          : states.length === 0
+                            ? 'No states available'
+                            : 'Select State'}
                     </option>
-                  ))}
-                </select>
+
+                    {states.map((item) => (
+                      <option key={item.name} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.state && (
+                    <p className="mt-1 text-sm text-red-600">{errors.state}</p>
+                  )}
+                </div>
 
                 {/* City */}
-                <input
-                  type="text"
-                  name="city"
-                  placeholder="City"
-                  value={city}
-                  onChange={(e) => {
-                    const selectedCity = e.target.value
+                <div>
+                  <input
+                    type="text"
+                    name="city"
+                    placeholder="City"
+                    value={formData.city}
+                    onChange={handleCityChange}
+                    disabled={!formData.state}
+                    className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
+                  />
 
-                    setCity(selectedCity)
-
-                    setFormData((prev) => ({
-                      ...prev,
-                      city: selectedCity,
-                    }))
-
-                    setAddressVerified(false)
-                    setVerificationMessage('')
-                  }}
-                  disabled={!state}
-                  className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
-                />
+                  {errors.city && (
+                    <p className="mt-1 text-sm text-red-600">{errors.city}</p>
+                  )}
+                </div>
 
                 {/* PIN */}
-                <input
-                  type="text"
-                  name="pinCode"
-                  placeholder="PIN Code"
-                  maxLength={6}
-                  inputMode="numeric"
-                  value={pinCode}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '')
+                <div>
+                  <input
+                    type="text"
+                    name="pinCode"
+                    placeholder="PIN Code"
+                    maxLength={6}
+                    inputMode="numeric"
+                    value={formData.pinCode}
+                    onChange={handlePinCodeChange}
+                    disabled={!formData.city}
+                    className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
+                  />
 
-                    setPinCode(value)
-
-                    setFormData((prev) => ({
-                      ...prev,
-                      pinCode: value,
-                    }))
-
-                    setAddressVerified(false)
-                    setVerificationMessage('')
-                  }}
-                  disabled={!city}
-                  className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
-                />
+                  {errors.pinCode && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.pinCode}
+                    </p>
+                  )}
+                </div>
 
                 {/* Verify Address */}
                 <button
@@ -681,6 +789,10 @@ export default function CheckoutPage() {
                   </div>
                 ))}
 
+                {errors.cart && (
+                  <p className="text-sm text-red-600">{errors.cart}</p>
+                )}
+
                 <div className="space-y-3 border-t border-stone-200 pt-4">
                   {/* Subtotal */}
                   <div className="flex justify-between">
@@ -720,11 +832,16 @@ export default function CheckoutPage() {
                 {/* Pay Now */}
                 <button
                   type="button"
-                  disabled={!addressVerified || paymentLoading}
+                  disabled={
+                    !addressVerified ||
+                    paymentLoading ||
+                    isSubmitting ||
+                    cartItems.length === 0
+                  }
                   onClick={handlePlaceOrder}
                   className="mt-4 w-full rounded-full bg-[#173b25] py-3.5 text-sm font-medium text-white transition hover:bg-[#245534] disabled:cursor-not-allowed disabled:bg-stone-300"
                 >
-                  {paymentLoading
+                  {paymentLoading || isSubmitting
                     ? 'OPENING PAYMENT...'
                     : addressVerified
                       ? 'PAY NOW'
