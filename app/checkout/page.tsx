@@ -444,7 +444,10 @@ export default function CheckoutPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: grandTotal,
+          items: cartItems.map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+          })),
         }),
       })
 
@@ -467,19 +470,45 @@ export default function CheckoutPage() {
 
         order_id: data.id,
 
-        handler: function (response: any) {
-          console.log('Razorpay payment response:', response)
+        handler: async function (response: any) {
+          try {
+            setPaymentLoading(true)
 
-          /*
-           * TEMPORARY:
-           * Do NOT consider this production-ready.
-           *
-           * Next priority step:
-           * Send razorpay_payment_id,
-           * razorpay_order_id and razorpay_signature
-           * to our server for verification.
-           */
-          window.location.href = '/order-success'
+            const verificationResponse = await fetch(
+              '/api/razorpay/verify-payment',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpaySignature: response.razorpay_signature,
+                }),
+              },
+            )
+
+            const verificationData = await verificationResponse.json()
+
+            if (!verificationResponse.ok) {
+              throw new Error(
+                verificationData?.error || 'Payment verification failed.',
+              )
+            }
+
+            window.location.href = '/order-success'
+          } catch (error) {
+            console.error('Payment verification failed:', error)
+
+            setPaymentLoading(false)
+
+            alert(
+              error instanceof Error
+                ? error.message
+                : 'Payment verification failed. Please contact support.',
+            )
+          }
         },
 
         prefill: {
