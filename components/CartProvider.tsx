@@ -1,15 +1,26 @@
 'use client'
 
-import { createContext, useContext, useMemo, useState } from 'react'
-import type { Product } from '@/data/products'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
-type CartItem = Product & {
+export type CartProduct = {
+  id: string
+  slug: string
+  name: string
+  label: string
+  price: number
+  description: string
+  image: string
+  images: string[]
+  weight: string | null
+}
+
+type CartItem = CartProduct & {
   quantity: number
 }
 
 type CartContextType = {
   cartItems: CartItem[]
-  addToCart: (product: Product) => void
+  addToCart: (product: CartProduct) => void
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
@@ -17,12 +28,47 @@ type CartContextType = {
   cartTotal: number
 }
 
+const CART_STORAGE_KEY = 'earthymic-cart'
+
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [isLoaded, setIsLoaded] = useState(false)
 
-  const addToCart = (product: Product) => {
+  // Load cart from localStorage after the component mounts
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem(CART_STORAGE_KEY)
+
+      if (savedCart) {
+        const parsedCart = JSON.parse(savedCart)
+
+        if (Array.isArray(parsedCart)) {
+          setCartItems(parsedCart)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load cart from localStorage:', error)
+    } finally {
+      setIsLoaded(true)
+    }
+  }, [])
+
+  // Save cart whenever it changes
+  useEffect(() => {
+    if (!isLoaded) {
+      return
+    }
+
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems))
+    } catch (error) {
+      console.error('Failed to save cart to localStorage:', error)
+    }
+  }, [cartItems, isLoaded])
+
+  const addToCart = (product: CartProduct) => {
     setCartItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.id === product.id)
 
