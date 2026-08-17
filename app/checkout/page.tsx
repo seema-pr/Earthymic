@@ -21,6 +21,20 @@ declare global {
 }
 
 export default function CheckoutPage() {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    mobile: '',
+    email: '',
+    address: '',
+    country: '',
+    state: '',
+    city: '',
+    pinCode: '',
+  })
+
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const { cartItems, cartTotal } = useCart()
 
   const [countries, setCountries] = useState<Country[]>([])
@@ -52,7 +66,7 @@ export default function CheckoutPage() {
 
       try {
         const response = await fetch(
-          'https://countriesnow.space/api/v0.1/countries'
+          'https://countriesnow.space/api/v0.1/countries',
         )
 
         if (!response.ok) {
@@ -63,13 +77,10 @@ export default function CheckoutPage() {
 
         if (data?.data) {
           const countryList: Country[] = data.data.map(
-            (item: {
-              country: string
-              iso2: string
-            }) => ({
+            (item: { country: string; iso2: string }) => ({
               name: item.country,
               code: item.iso2,
-            })
+            }),
           )
 
           setCountries(countryList)
@@ -78,7 +89,7 @@ export default function CheckoutPage() {
         console.error('Failed to load countries:', error)
 
         setVerificationMessage(
-          'Unable to load countries. Please refresh the page.'
+          'Unable to load countries. Please refresh the page.',
         )
       } finally {
         setLoadingCountries(false)
@@ -112,7 +123,7 @@ export default function CheckoutPage() {
             body: JSON.stringify({
               iso2: country,
             }),
-          }
+          },
         )
 
         if (!response.ok) {
@@ -136,6 +147,62 @@ export default function CheckoutPage() {
 
     loadStates()
   }, [country])
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: '',
+    }))
+  }
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required'
+    }
+
+    if (!/^[6-9]\d{9}$/.test(formData.mobile)) {
+      newErrors.mobile = 'Enter a valid 10-digit mobile number'
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Enter a valid email address'
+    }
+
+    if (!formData.address.trim()) {
+      newErrors.address = 'Complete address is required'
+    }
+
+    if (!formData.country) {
+      newErrors.country = 'Please select a country'
+    }
+
+    if (!formData.state) {
+      newErrors.state = 'Please select a state'
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required'
+    }
+
+    if (!/^\d{6}$/.test(formData.pinCode)) {
+      newErrors.pinCode = 'Enter a valid 6-digit PIN code'
+    }
+
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
 
   /*
    * Verify address
@@ -164,15 +231,13 @@ export default function CheckoutPage() {
       return
     }
 
-    if (!trimmedAddress) {
-      setVerificationMessage('Please enter your complete address.')
-      return
-    }
+    // if (!trimmedAddress) {
+    //   setVerificationMessage('Please enter your complete address.')
+    //   return
+    // }
 
     if (!/^\d{6}$/.test(trimmedPin)) {
-      setVerificationMessage(
-        'Please enter a valid 6-digit PIN code.'
-      )
+      setVerificationMessage('Please enter a valid 6-digit PIN code.')
       return
     }
 
@@ -183,7 +248,7 @@ export default function CheckoutPage() {
       setAddressVerified(true)
 
       setVerificationMessage(
-        'Address details saved. PIN verification is currently available for India.'
+        'Address details saved. PIN verification is currently available for India.',
       )
 
       return
@@ -191,7 +256,7 @@ export default function CheckoutPage() {
 
     try {
       const response = await fetch(
-        `https://api.postalpincode.in/pincode/${trimmedPin}`
+        `https://api.postalpincode.in/pincode/${trimmedPin}`,
       )
 
       if (!response.ok) {
@@ -205,20 +270,16 @@ export default function CheckoutPage() {
         data[0].Status !== 'Success' ||
         !data[0].PostOffice?.length
       ) {
-        setVerificationMessage(
-          'Invalid PIN code. Please check your address.'
-        )
+        setVerificationMessage('Invalid PIN code. Please check your address.')
 
         return
       }
 
       const postOffice = data[0].PostOffice[0]
 
-      const pinState =
-        postOffice.State?.toLowerCase().trim() || ''
+      const pinState = postOffice.State?.toLowerCase().trim() || ''
 
-      const enteredState =
-        trimmedState.toLowerCase()
+      const enteredState = trimmedState.toLowerCase()
 
       /*
        * State validation
@@ -236,7 +297,7 @@ export default function CheckoutPage() {
         !enteredState.includes(pinState)
       ) {
         setVerificationMessage(
-          `PIN ${trimmedPin} belongs to ${postOffice.State}, not ${trimmedState}.`
+          `PIN ${trimmedPin} belongs to ${postOffice.State}, not ${trimmedState}.`,
         )
 
         return
@@ -245,24 +306,33 @@ export default function CheckoutPage() {
       setAddressVerified(true)
 
       setVerificationMessage(
-        `Address verified ✓ ${postOffice.District}, ${postOffice.State}`
+        `Address verified ✓ ${postOffice.District}, ${postOffice.State}`,
       )
     } catch (error) {
       console.error('Address verification failed:', error)
 
       setVerificationMessage(
-        'Unable to verify the address right now. Please try again.'
+        'Unable to verify the address right now. Please try again.',
       )
     }
   }
 
+  const handlePlaceOrder = () => {
+    const isValid = validateForm()
+
+    if (!isValid) {
+      return
+    }
+
+    console.log('Checkout form is valid', formData)
+  }
   /*
    * Start Razorpay payment
    */
   const handlePayment = async () => {
     if (!addressVerified) {
       setVerificationMessage(
-        'Please verify your address before placing the order.'
+        'Please verify your address before placing the order.',
       )
 
       return
@@ -274,9 +344,7 @@ export default function CheckoutPage() {
     }
 
     if (!window.Razorpay) {
-      alert(
-        'Payment system is still loading. Please try again in a moment.'
-      )
+      alert('Payment system is still loading. Please try again in a moment.')
 
       return
     }
@@ -287,26 +355,20 @@ export default function CheckoutPage() {
       /*
        * Create Razorpay order on our server
        */
-      const response = await fetch(
-        '/api/razorpay/create-order',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: grandTotal,
-          }),
-        }
-      )
+      const response = await fetch('/api/razorpay/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: grandTotal,
+        }),
+      })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(
-          data?.error ||
-            'Unable to create payment order.'
-        )
+        throw new Error(data?.error || 'Unable to create payment order.')
       }
 
       /*
@@ -326,10 +388,7 @@ export default function CheckoutPage() {
         order_id: data.id,
 
         handler: function (response: any) {
-          console.log(
-            'Razorpay payment response:',
-            response
-          )
+          console.log('Razorpay payment response:', response)
 
           /*
            * TEMPORARY:
@@ -367,42 +426,31 @@ export default function CheckoutPage() {
       /*
        * Open Razorpay
        */
-      const razorpay =
-        new window.Razorpay(options)
+      const razorpay = new window.Razorpay(options)
 
       /*
        * Payment failure
        */
-      razorpay.on(
-        'payment.failed',
-        function (response: any) {
-          console.error(
-            'Payment failed:',
-            response?.error
-          )
+      razorpay.on('payment.failed', function (response: any) {
+        console.error('Payment failed:', response?.error)
 
-          setPaymentLoading(false)
+        setPaymentLoading(false)
 
-          alert(
-            response?.error?.description ||
-              'Payment failed. Please try again.'
-          )
-        }
-      )
+        alert(
+          response?.error?.description || 'Payment failed. Please try again.',
+        )
+      })
 
       razorpay.open()
     } catch (error) {
-      console.error(
-        'Payment initialization failed:',
-        error
-      )
+      console.error('Payment initialization failed:', error)
 
       setPaymentLoading(false)
 
       alert(
         error instanceof Error
           ? error.message
-          : 'Unable to start payment. Please try again.'
+          : 'Unable to start payment. Please try again.',
       )
     }
   }
@@ -417,25 +465,22 @@ export default function CheckoutPage() {
 
       <main className="min-h-screen bg-[#f8f6f0] px-5 py-10">
         <div className="mx-auto max-w-5xl">
-
-          <h1 className="text-3xl font-semibold text-[#173b25]">
-            Checkout
-          </h1>
+          <h1 className="text-3xl font-semibold text-[#173b25]">Checkout</h1>
 
           <div className="mt-8 grid gap-8 md:grid-cols-2">
-
             {/* Customer Details */}
             <section className="rounded-2xl bg-white p-6 shadow-sm">
-
               <h2 className="text-xl font-semibold text-stone-900">
                 Delivery Details
               </h2>
 
               <div className="mt-6 space-y-4">
-
                 {/* Full Name */}
                 <input
                   type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
                   placeholder="Full Name"
                   className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
                 />
@@ -443,6 +488,9 @@ export default function CheckoutPage() {
                 {/* Mobile */}
                 <input
                   type="tel"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleChange}
                   placeholder="Mobile Number"
                   className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
                 />
@@ -450,17 +498,21 @@ export default function CheckoutPage() {
                 {/* Email */}
                 <input
                   type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
                   placeholder="Email Address"
                   className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
                 />
 
                 {/* Address */}
                 <textarea
+                  name="address"
                   placeholder="Complete Address"
                   rows={4}
-                  value={address}
+                  value={formData.address}
                   onChange={(e) => {
-                    setAddress(e.target.value)
+                    handleChange(e)
                     setAddressVerified(false)
                     setVerificationMessage('')
                   }}
@@ -471,10 +523,15 @@ export default function CheckoutPage() {
                 <select
                   value={country}
                   onChange={(e) => {
-                    const selectedCountry =
-                      e.target.value
-
+                    const selectedCountry = e.target.value
                     setCountry(selectedCountry)
+                    setFormData((prev) => ({
+                      ...prev,
+                      country: selectedCountry,
+                      state: '',
+                      city: '',
+                      pinCode: '',
+                    }))
                     setState('')
                     setCity('')
                     setPinCode('')
@@ -491,10 +548,7 @@ export default function CheckoutPage() {
                   </option>
 
                   {countries.map((item) => (
-                    <option
-                      key={item.code}
-                      value={item.code}
-                    >
+                    <option key={item.code} value={item.code}>
                       {item.name}
                     </option>
                   ))}
@@ -510,10 +564,7 @@ export default function CheckoutPage() {
                     setAddressVerified(false)
                     setVerificationMessage('')
                   }}
-                  disabled={
-                    !country ||
-                    loadingStates
-                  }
+                  disabled={!country || loadingStates}
                   className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 outline-none focus:border-[#173b25] disabled:bg-stone-100"
                 >
                   <option value="">
@@ -527,10 +578,7 @@ export default function CheckoutPage() {
                   </option>
 
                   {states.map((item) => (
-                    <option
-                      key={item.name}
-                      value={item.name}
-                    >
+                    <option key={item.name} value={item.name}>
                       {item.name}
                     </option>
                   ))}
@@ -539,10 +587,19 @@ export default function CheckoutPage() {
                 {/* City */}
                 <input
                   type="text"
+                  name="city"
                   placeholder="City"
                   value={city}
                   onChange={(e) => {
-                    setCity(e.target.value)
+                    const selectedCity = e.target.value
+
+                    setCity(selectedCity)
+
+                    setFormData((prev) => ({
+                      ...prev,
+                      city: selectedCity,
+                    }))
+
                     setAddressVerified(false)
                     setVerificationMessage('')
                   }}
@@ -553,17 +610,20 @@ export default function CheckoutPage() {
                 {/* PIN */}
                 <input
                   type="text"
+                  name="pinCode"
                   placeholder="PIN Code"
                   maxLength={6}
                   inputMode="numeric"
                   value={pinCode}
                   onChange={(e) => {
-                    setPinCode(
-                      e.target.value.replace(
-                        /\D/g,
-                        ''
-                      )
-                    )
+                    const value = e.target.value.replace(/\D/g, '')
+
+                    setPinCode(value)
+
+                    setFormData((prev) => ({
+                      ...prev,
+                      pinCode: value,
+                    }))
 
                     setAddressVerified(false)
                     setVerificationMessage('')
@@ -579,103 +639,74 @@ export default function CheckoutPage() {
                   disabled={addressVerified}
                   className="w-full rounded-full border border-[#173b25] py-3.5 text-sm font-medium text-[#173b25] transition hover:bg-[#173b25] hover:text-white disabled:cursor-not-allowed disabled:border-green-700 disabled:bg-green-50 disabled:text-green-700"
                 >
-                  {addressVerified
-                    ? 'ADDRESS VERIFIED ✓'
-                    : 'VERIFY ADDRESS'}
+                  {addressVerified ? 'ADDRESS VERIFIED ✓' : 'VERIFY ADDRESS'}
                 </button>
 
                 {/* Verification message */}
                 {verificationMessage && (
                   <p
                     className={`text-sm ${
-                      addressVerified
-                        ? 'text-green-700'
-                        : 'text-red-600'
+                      addressVerified ? 'text-green-700' : 'text-red-600'
                     }`}
                   >
                     {verificationMessage}
                   </p>
                 )}
-
               </div>
             </section>
 
             {/* Order Summary */}
             <section className="rounded-2xl bg-white p-6 shadow-sm">
-
               <h2 className="text-xl font-semibold text-stone-900">
                 Order Summary
               </h2>
 
               <div className="mt-6 space-y-4">
-
                 {cartItems.map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between gap-4"
                   >
                     <div>
-
-                      <p className="font-medium text-stone-900">
-                        {item.name}
-                      </p>
+                      <p className="font-medium text-stone-900">{item.name}</p>
 
                       <p className="text-sm text-stone-500">
                         Qty: {item.quantity}
                       </p>
-
                     </div>
 
                     <span className="font-medium text-stone-900">
-                      ₹
-                      {(
-                        item.price *
-                        item.quantity
-                      ).toFixed(2)}
+                      ₹{(item.price * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}
 
                 <div className="space-y-3 border-t border-stone-200 pt-4">
-
                   {/* Subtotal */}
                   <div className="flex justify-between">
-                    <span className="text-sm text-stone-500">
-                      Subtotal
-                    </span>
+                    <span className="text-sm text-stone-500">Subtotal</span>
 
-                    <span>
-                      ₹{cartTotal.toFixed(2)}
-                    </span>
+                    <span>₹{cartTotal.toFixed(2)}</span>
                   </div>
 
                   {/* GST */}
                   <div className="flex justify-between">
-                    <span className="text-sm text-stone-500">
-                      GST (18%)
-                    </span>
+                    <span className="text-sm text-stone-500">GST (18%)</span>
 
-                    <span>
-                      ₹{gst.toFixed(2)}
-                    </span>
+                    <span>₹{gst.toFixed(2)}</span>
                   </div>
 
                   {/* Shipping */}
                   <div className="flex justify-between">
-                    <span className="text-sm text-stone-500">
-                      Shipping
-                    </span>
+                    <span className="text-sm text-stone-500">Shipping</span>
 
                     <span>
-                      {shipping === 0
-                        ? 'FREE'
-                        : `₹${shipping.toFixed(2)}`}
+                      {shipping === 0 ? 'FREE' : `₹${shipping.toFixed(2)}`}
                     </span>
                   </div>
 
                   {/* Grand Total */}
                   <div className="flex justify-between border-t border-stone-200 pt-4">
-
                     <span className="font-semibold text-stone-900">
                       Grand Total
                     </span>
@@ -683,19 +714,14 @@ export default function CheckoutPage() {
                     <span className="text-xl font-semibold text-[#173b25]">
                       ₹{grandTotal.toFixed(2)}
                     </span>
-
                   </div>
-
                 </div>
 
                 {/* Pay Now */}
                 <button
                   type="button"
-                  disabled={
-                    !addressVerified ||
-                    paymentLoading
-                  }
-                  onClick={handlePayment}
+                  disabled={!addressVerified || paymentLoading}
+                  onClick={handlePlaceOrder}
                   className="mt-4 w-full rounded-full bg-[#173b25] py-3.5 text-sm font-medium text-white transition hover:bg-[#245534] disabled:cursor-not-allowed disabled:bg-stone-300"
                 >
                   {paymentLoading
@@ -704,10 +730,8 @@ export default function CheckoutPage() {
                       ? 'PAY NOW'
                       : 'VERIFY ADDRESS TO CONTINUE'}
                 </button>
-
               </div>
             </section>
-
           </div>
         </div>
       </main>
