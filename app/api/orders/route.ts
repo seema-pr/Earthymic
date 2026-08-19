@@ -105,9 +105,9 @@ export async function POST(request: Request) {
             products.map((product) => [product.id, product] as const)
         )
 
-        products.forEach((product: { id: string }) => {
-            productMap.set(product.id, product)
-        })
+        // products.forEach((product: { id: string }) => {
+        //     productMap.set(product.id, product)
+        // })
 
         const orderItems = items.map((item) => {
             const product = productMap.get(item.id)

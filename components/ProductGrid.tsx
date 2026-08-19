@@ -45,14 +45,13 @@ export default function ProductGrid({
 
     return products.filter((product) => {
       /*
-       * Your database structure is:
+       * Database structure:
        *
        * Product
        *   └── subCategory
        *         └── category
        *
-       * Hair and Skin are subcategories in your current database,
-       * so we use subCategory.slug for the filter.
+       * Hair, Skin and Wellness are filtered using subCategory.slug.
        */
       const categorySlug = product.subCategory.slug
 
@@ -193,7 +192,15 @@ export default function ProductGrid({
               <div className="px-4 pb-4">
                 <button
                   type="button"
-                  onClick={() => addToCart(product)}
+                  onClick={() =>
+                    addToCart({
+                      ...product,
+                      label: product.label ?? '',
+                      image:
+                        product.image ?? '/assets/products/placeholder.png',
+                      price: Number(product.price),
+                    })
+                  }
                   className="w-full rounded-full bg-[#173b25] py-2.5 text-sm font-medium text-white transition hover:bg-[#245534]"
                 >
                   Add to Cart

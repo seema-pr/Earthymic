@@ -27,10 +27,10 @@ export default async function ProductDetailsPage({
     id: product.id,
     slug: product.slug,
     name: product.name,
-    label: product.label,
+    label: product.label ?? '',
     price: Number(product.price),
     description: product.description,
-    image: product.image,
+    image: product.image ?? '',
     images: product.images,
     weight: product.weight,
   }
