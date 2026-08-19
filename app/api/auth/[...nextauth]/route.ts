@@ -11,7 +11,7 @@ const handler = NextAuth({
     adapter: PrismaAdapter(prisma),
 
     session: {
-        strategy: 'database',
+        strategy: 'jwt',
     },
 
     providers: [
@@ -30,17 +30,31 @@ const handler = NextAuth({
             },
 
             async authorize(credentials) {
+                console.log('AUTH: authorize called')
+
                 if (!credentials?.email || !credentials?.password) {
+                    console.log('AUTH: missing email or password')
                     return null
                 }
 
                 const email = credentials.email.trim().toLowerCase()
 
+                console.log('AUTH: email:', email)
+
                 const user = await prisma.user.findUnique({
                     where: { email },
                 })
 
-                if (!user?.passwordHash) {
+                console.log('AUTH: user found:', !!user)
+                console.log('AUTH: password hash exists:', !!user?.passwordHash)
+
+                if (!user) {
+                    console.log('AUTH: USER NOT FOUND')
+                    return null
+                }
+
+                if (!user.passwordHash) {
+                    console.log('AUTH: PASSWORD HASH MISSING')
                     return null
                 }
 
@@ -49,9 +63,14 @@ const handler = NextAuth({
                     user.passwordHash,
                 )
 
+                console.log('AUTH: password valid:', passwordValid)
+
                 if (!passwordValid) {
+                    console.log('AUTH: PASSWORD INVALID')
                     return null
                 }
+
+                console.log('AUTH: LOGIN SUCCESS')
 
                 return {
                     id: user.id,

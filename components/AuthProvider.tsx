@@ -1,188 +1,231 @@
 'use client'
 
-/*
- * AuthProvider — UI-ONLY MOCK
- * ----------------------------------------------------------------
- * This mirrors the pattern used in CartProvider.tsx: a React Context
- * that holds auth state and exposes register/login/logout/update
- * functions to the rest of the app.
- *
- * There is no real backend yet. Accounts are stored in the browser's
- * localStorage purely so the register -> login -> profile -> logout
- * flow is fully testable while the UI is being built.
- *
- * TODO (when the Postgres backend is ready):
- *   - Replace readUsers/writeUsers + the bodies of register/login/
- *     updateProfile with real fetch() calls to your API routes
- *     (e.g. POST /api/auth/register, POST /api/auth/login).
- *   - Replace the localStorage session with a real session/cookie
- *     (e.g. Auth.js) and remove SESSION_KEY/USERS_KEY entirely.
- *   - Passwords here are stored in plain text in localStorage. This
- *     is ONLY acceptable because it's a local UI mock. A real
- *     backend must hash passwords (e.g. bcrypt) and never store or
- *     return plain text passwords.
- * ----------------------------------------------------------------
- */
-
 import { createContext, useContext, useEffect, useState } from 'react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 
 type User = {
   id: string
   name: string
   email: string
+  image?: string | null
 }
 
-type StoredUser = User & { password: string }
-
-type AuthResult = { success: boolean; error?: string }
+type AuthResult = {
+  success: boolean
+  error?: string
+}
 
 type AuthContextType = {
   user: User | null
   isAuthenticated: boolean
   loading: boolean
-  register: (name: string, email: string, password: string) => Promise<AuthResult>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    phone: string,
+  ) => Promise<AuthResult>
   login: (email: string, password: string) => Promise<AuthResult>
   logout: () => void
-  updateProfile: (updates: { name?: string; email?: string }) => Promise<AuthResult>
+  updateProfile: (updates: {
+    name?: string
+    email?: string
+  }) => Promise<AuthResult>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const USERS_KEY = 'earthymic_users'
-const SESSION_KEY = 'earthymic_session'
-
-function readUsers(): StoredUser[] {
-  if (typeof window === 'undefined') return []
-
-  try {
-    const raw = window.localStorage.getItem(USERS_KEY)
-    return raw ? (JSON.parse(raw) as StoredUser[]) : []
-  } catch {
-    return []
-  }
-}
-
-function writeUsers(users: StoredUser[]) {
-  window.localStorage.setItem(USERS_KEY, JSON.stringify(users))
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: session, status, update } = useSession()
 
-  /*
-   * Restore session on first load
-   */
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(SESSION_KEY)
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore of session from localStorage on mount, not a derivable render value
-      if (raw) setUser(JSON.parse(raw) as User)
-    } catch {
-      // ignore corrupt/missing session
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const [profileLoading, setProfileLoading] = useState(false)
 
-  const persistSession = (nextUser: User | null) => {
-    setUser(nextUser)
+  const user: User | null = session?.user
+    ? {
+        id: session.user.id ?? '',
+        name: session.user.name ?? '',
+        email: session.user.email ?? '',
+        image: session.user.image,
+      }
+    : null
 
-    if (nextUser) {
-      window.localStorage.setItem(SESSION_KEY, JSON.stringify(nextUser))
-    } else {
-      window.localStorage.removeItem(SESSION_KEY)
-    }
-  }
+  const loading = status === 'loading' || profileLoading
 
-  const register: AuthContextType['register'] = async (name, email, password) => {
+  const register: AuthContextType['register'] = async (
+    name,
+    email,
+    password,
+    phone,
+  ) => {
     const trimmedName = name.trim()
     const normalizedEmail = email.trim().toLowerCase()
 
     if (!trimmedName) {
-      return { success: false, error: 'Please enter your full name.' }
+      return {
+        success: false,
+        error: 'Please enter your full name.',
+      }
     }
 
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      return { success: false, error: 'Please enter a valid email address.' }
+      return {
+        success: false,
+        error: 'Please enter a valid email address.',
+      }
     }
 
     if (password.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters.' }
+      return {
+        success: false,
+        error: 'Password must be at least 6 characters.',
+      }
     }
 
-    const users = readUsers()
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+          email: normalizedEmail,
+          password,
+          phone: phone.trim(),
+        }),
+      })
 
-    if (users.some((u) => u.email === normalizedEmail)) {
-      return { success: false, error: 'An account with this email already exists.' }
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.error || 'Unable to create your account.',
+        }
+      }
+
+      /*
+       * Registration creates the database User + Customer.
+       *
+       * We intentionally do not create a localStorage session.
+       * Login must go through NextAuth.
+       */
+      return {
+        success: true,
+      }
+    } catch (error) {
+      console.error('Registration failed:', error)
+
+      return {
+        success: false,
+        error: 'Unable to create your account. Please try again.',
+      }
     }
-
-    const newUser: StoredUser = {
-      id: crypto.randomUUID(),
-      name: trimmedName,
-      email: normalizedEmail,
-      password,
-    }
-
-    writeUsers([...users, newUser])
-    persistSession({ id: newUser.id, name: newUser.name, email: newUser.email })
-
-    return { success: true }
   }
 
   const login: AuthContextType['login'] = async (email, password) => {
     const normalizedEmail = email.trim().toLowerCase()
-    const users = readUsers()
 
-    const found = users.find(
-      (u) => u.email === normalizedEmail && u.password === password,
-    )
-
-    if (!found) {
-      return { success: false, error: 'Invalid email or password.' }
+    if (!normalizedEmail || !password) {
+      return {
+        success: false,
+        error: 'Please enter your email and password.',
+      }
     }
 
-    persistSession({ id: found.id, name: found.name, email: found.email })
-    return { success: true }
+    try {
+      const result = await signIn('credentials', {
+        email: normalizedEmail,
+        password,
+        redirect: false,
+      })
+
+      if (!result || result.error) {
+        return {
+          success: false,
+          error: 'Invalid email or password.',
+        }
+      }
+
+      return {
+        success: true,
+      }
+    } catch (error) {
+      console.error('Login failed:', error)
+
+      return {
+        success: false,
+        error: 'Unable to log in. Please try again.',
+      }
+    }
   }
 
   const logout = () => {
-    persistSession(null)
+    void signOut({
+      callbackUrl: '/login',
+    })
   }
 
   const updateProfile: AuthContextType['updateProfile'] = async (updates) => {
     if (!user) {
-      return { success: false, error: 'You must be logged in.' }
-    }
-
-    const users = readUsers()
-    const index = users.findIndex((u) => u.id === user.id)
-
-    if (index === -1) {
-      return { success: false, error: 'Account not found.' }
-    }
-
-    const nextEmail = updates.email?.trim().toLowerCase()
-
-    if (nextEmail && nextEmail !== users[index].email) {
-      if (users.some((u) => u.email === nextEmail && u.id !== user.id)) {
-        return { success: false, error: 'That email is already in use.' }
+      return {
+        success: false,
+        error: 'You must be logged in.',
       }
     }
 
-    const updated: StoredUser = {
-      ...users[index],
-      ...(updates.name ? { name: updates.name.trim() } : {}),
-      ...(nextEmail ? { email: nextEmail } : {}),
+    const name = updates.name?.trim()
+    const email = updates.email?.trim().toLowerCase()
+
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      return {
+        success: false,
+        error: 'Please enter a valid email address.',
+      }
     }
 
-    const nextUsers = [...users]
-    nextUsers[index] = updated
-    writeUsers(nextUsers)
+    setProfileLoading(true)
 
-    persistSession({ id: updated.id, name: updated.name, email: updated.email })
+    try {
+      const response = await fetch('/api/account/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+        }),
+      })
 
-    return { success: true }
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        return {
+          success: false,
+          error: data.error || 'Unable to update your profile.',
+        }
+      }
+
+      /*
+       * Refresh the NextAuth session so the updated
+       * user information becomes available to the UI.
+       */
+      await update()
+
+      return {
+        success: true,
+      }
+    } catch (error) {
+      console.error('Profile update failed:', error)
+
+      return {
+        success: false,
+        error: 'Unable to update your profile. Please try again.',
+      }
+    } finally {
+      setProfileLoading(false)
+    }
   }
 
   return (

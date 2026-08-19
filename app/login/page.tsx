@@ -29,15 +29,13 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/account')
+    router.push('/')
   }
 
   return (
     <main className="min-h-screen bg-[#f8f6f0] px-5 py-16">
       <div className="mx-auto max-w-md">
-        <h1 className="text-3xl font-semibold text-[#173b25]">
-          Log In
-        </h1>
+        <h1 className="text-3xl font-semibold text-[#173b25]">Log In</h1>
 
         <p className="mt-2 text-sm text-stone-500">
           Welcome back to Earthymic.
@@ -65,9 +63,7 @@ export default function LoginPage() {
               className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
             />
 
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button
               type="submit"
@@ -80,7 +76,10 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-stone-500">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-medium text-[#173b25] hover:underline">
+            <Link
+              href="/register"
+              className="font-medium text-[#173b25] hover:underline"
+            >
               Create one
             </Link>
           </p>

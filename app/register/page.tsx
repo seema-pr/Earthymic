@@ -11,6 +11,7 @@ export default function RegisterPage() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
@@ -28,7 +29,7 @@ export default function RegisterPage() {
 
     setSubmitting(true)
 
-    const result = await register(name, email, password)
+    const result = await register(name, email, password, phone)
 
     setSubmitting(false)
 
@@ -37,7 +38,7 @@ export default function RegisterPage() {
       return
     }
 
-    router.push('/account')
+    router.push('/')
   }
 
   return (
@@ -59,6 +60,16 @@ export default function RegisterPage() {
               placeholder="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
+            />
+
+            {/* Phone */}
+            <input
+              type="text"
+              placeholder="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
               className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
             />
@@ -95,9 +106,7 @@ export default function RegisterPage() {
               className="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:border-[#173b25]"
             />
 
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button
               type="submit"
@@ -110,7 +119,10 @@ export default function RegisterPage() {
 
           <p className="mt-6 text-center text-sm text-stone-500">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-[#173b25] hover:underline">
+            <Link
+              href="/login"
+              className="font-medium text-[#173b25] hover:underline"
+            >
               Log in
             </Link>
           </p>
