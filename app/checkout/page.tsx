@@ -435,6 +435,16 @@ export default function CheckoutPage() {
             productId: item.id,
             quantity: item.quantity,
           })),
+          customer: {
+            fullName: formData.fullName,
+            mobile: formData.mobile,
+            email: formData.email,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            country: formData.country,
+            pinCode: formData.pinCode,
+          },
         }),
       })
 
