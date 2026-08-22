@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
+import { getToken } from 'next-auth/jwt'
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID!,
@@ -81,9 +82,17 @@ export async function POST(request: Request) {
             )
         }
 
-        if (!city || !state || !country || !/^\d{6}$/.test(pinCode)) {
+        if (
+            !city ||
+            !state ||
+            !country ||
+            !/^\d{6}$/.test(pinCode)
+        ) {
             return NextResponse.json(
-                { error: 'Complete and valid address details are required.' },
+                {
+                    error:
+                        'Complete and valid address details are required.',
+                },
                 { status: 400 },
             )
         }
@@ -158,7 +167,6 @@ export async function POST(request: Request) {
         const gst = subtotal * 0.18
         const shipping = subtotal >= 999 ? 0 : 50
         const totalAmount = subtotal + gst + shipping
-
         const razorpayAmount = Math.round(totalAmount * 100)
 
         if (razorpayAmount <= 0) {
@@ -166,6 +174,33 @@ export async function POST(request: Request) {
                 { error: 'Invalid order amount.' },
                 { status: 400 },
             )
+        }
+
+        /*
+         * Get logged-in user.
+         */
+        const token = await getToken({
+            req: request as any,
+            secret: process.env.NEXTAUTH_SECRET,
+        })
+
+        console.log('RAZORPAY CREATE ORDER TOKEN:', token)
+
+        const userId = token?.sub ?? null
+
+        console.log('RAZORPAY CREATE ORDER USER ID:', userId)
+
+        /*
+         * Find existing Customer.
+         */
+        let customerRecord = null
+
+        if (userId) {
+            customerRecord = await prisma.customer.findUnique({
+                where: {
+                    userId,
+                },
+            })
         }
 
         /*
@@ -178,15 +213,32 @@ export async function POST(request: Request) {
         })
 
         /*
-         * Create Earthymic order in PENDING state.
-         *
-         * customerId remains null for now so guest checkout
-         * continues to work. We'll connect authenticated
-         * customers separately.
+         * Save customer address for authenticated customers.
+         */
+        if (customerRecord) {
+            await prisma.customerAddress.create({
+                data: {
+                    customerId: customerRecord.id,
+                    fullName,
+                    mobile,
+                    addressLine1: address,
+                    city,
+                    state,
+                    postalCode: pinCode,
+                    country,
+                    isDefault: true,
+                },
+            })
+        }
+
+        /*
+         * Create Earthymic order.
          */
         const order = await prisma.order.create({
             data: {
                 orderNumber: `EYM-${Date.now()}`,
+
+                customerId: customerRecord?.id ?? null,
 
                 customerName: fullName,
                 customerEmail: email,
@@ -205,7 +257,6 @@ export async function POST(request: Request) {
 
                 status: 'PENDING',
                 paymentStatus: 'PENDING',
-
                 paymentOrderId: razorpayOrder.id,
 
                 items: {
@@ -221,7 +272,10 @@ export async function POST(request: Request) {
             orderId: order.id,
         })
     } catch (error) {
-        console.error('Razorpay order creation failed:', error)
+        console.error(
+            'Razorpay order creation failed:',
+            error,
+        )
 
         return NextResponse.json(
             {

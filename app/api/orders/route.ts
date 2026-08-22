@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getToken } from 'next-auth/jwt'
 
 type OrderRequestItem = {
     id: string
@@ -19,10 +20,29 @@ type OrderRequestBody = {
     items: OrderRequestItem[]
 }
 
+
 export async function POST(request: Request) {
     try {
         const body: OrderRequestBody = await request.json()
+        const token = await getToken({
+            req: request as any,
+            secret: process.env.NEXTAUTH_SECRET,
+        })
 
+        const userId = token?.sub ?? null
+
+        let customer = null
+
+        if (userId) {
+            customer = await prisma.customer.findUnique({
+                where: {
+                    userId,
+                },
+            })
+        }
+
+        console.log('ORDER USER ID:', userId)
+        console.log('ORDER CUSTOMER:', customer)
         const {
             customerName,
             customerEmail,
@@ -146,11 +166,38 @@ export async function POST(request: Request) {
 
         // Generate a readable order number
         const orderNumber = `EAR-${Date.now()}`
+        if (customer) {
+            const existingAddress = await prisma.customerAddress.findFirst({
+                where: {
+                    customerId: customer.id,
+                    addressLine1: addressLine1.trim(),
+                    city: city.trim(),
+                    state: state.trim(),
+                    postalCode: postalCode.trim(),
+                },
+            })
 
+            if (!existingAddress) {
+                await prisma.customerAddress.create({
+                    data: {
+                        customerId: customer.id,
+                        fullName: customerName.trim(),
+                        mobile: customerPhone.trim(),
+                        addressLine1: addressLine1.trim(),
+                        addressLine2: addressLine2?.trim() || null,
+                        city: city.trim(),
+                        state: state.trim(),
+                        postalCode: postalCode.trim(),
+                        country: country?.trim() || 'India',
+                        isDefault: true,
+                    },
+                })
+            }
+        }
         const order = await prisma.order.create({
             data: {
                 orderNumber,
-
+                customerId: customer?.id ?? null,
                 customerName: customerName.trim(),
                 customerEmail: customerEmail?.trim() || null,
                 customerPhone: customerPhone.trim(),
