@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
+import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
 import { getToken } from 'next-auth/jwt'
@@ -33,9 +33,9 @@ export async function POST(request: Request) {
         const items = body.items as CheckoutItem[]
         const customer = body.customer as CheckoutCustomer
 
-        // ---------------------------------------------------------
-        // VALIDATE CART
-        // ---------------------------------------------------------
+        // =========================================================
+        // 1. VALIDATE CART
+        // =========================================================
 
         if (!Array.isArray(items) || items.length === 0) {
             return NextResponse.json(
@@ -46,9 +46,9 @@ export async function POST(request: Request) {
             )
         }
 
-        // ---------------------------------------------------------
-        // VALIDATE CUSTOMER
-        // ---------------------------------------------------------
+        // =========================================================
+        // 2. VALIDATE CUSTOMER
+        // =========================================================
 
         if (!customer) {
             return NextResponse.json(
@@ -60,14 +60,25 @@ export async function POST(request: Request) {
         }
 
         const fullName = String(customer.fullName ?? '').trim()
+
         const mobile = String(customer.mobile ?? '').trim()
-        const email = String(customer.email ?? '').trim().toLowerCase()
+
+        const email = String(customer.email ?? '')
+            .trim()
+            .toLowerCase()
+
         const address = String(customer.address ?? '').trim()
-        const addressLine2 = String(customer.addressLine2 ?? '').trim() || null
+
+        const addressLine2 =
+            String(customer.addressLine2 ?? '').trim() || null
+
         const city = String(customer.city ?? '').trim()
+
         const state = String(customer.state ?? '').trim()
+
         const country =
             String(customer.country ?? '').trim() || 'India'
+
         const pinCode = String(customer.pinCode ?? '').trim()
 
         if (!fullName) {
@@ -120,9 +131,9 @@ export async function POST(request: Request) {
             )
         }
 
-        // ---------------------------------------------------------
-        // VALIDATE CART ITEMS
-        // ---------------------------------------------------------
+        // =========================================================
+        // 3. VALIDATE CART ITEMS
+        // =========================================================
 
         for (const item of items) {
             if (
@@ -141,14 +152,16 @@ export async function POST(request: Request) {
             }
         }
 
-        // ---------------------------------------------------------
-        // LOAD PRODUCTS FROM DATABASE
+        // =========================================================
+        // 4. LOAD PRODUCTS FROM DATABASE
         //
-        // Never trust product price from frontend.
-        // ---------------------------------------------------------
+        // Never trust price received from frontend.
+        // =========================================================
 
         const productIds = [
-            ...new Set(items.map((item) => item.productId)),
+            ...new Set(
+                items.map((item) => item.productId.trim()),
+            ),
         ]
 
         const products = await prisma.product.findMany({
@@ -169,15 +182,14 @@ export async function POST(request: Request) {
             )
         }
 
-        // ---------------------------------------------------------
-        // BUILD ORDER ITEMS
-        //
-        // Explicit Prisma type fixes TS7034 / TS7005.
-        // ---------------------------------------------------------
+        // =========================================================
+        // 5. BUILD ORDER ITEMS
+        // =========================================================
 
         let subtotal = 0
 
-        const orderItems: Prisma.OrderItemCreateWithoutOrderInput[] = []
+        const orderItems: Prisma.OrderItemCreateWithoutOrderInput[] =
+            []
 
         for (const item of items) {
             const product = products.find(
@@ -194,6 +206,7 @@ export async function POST(request: Request) {
             }
 
             const price = Number(product.price)
+
             const total = price * item.quantity
 
             subtotal += total
@@ -204,18 +217,24 @@ export async function POST(request: Request) {
                         id: product.id,
                     },
                 },
+
                 productName: product.name,
+
                 productSlug: product.slug,
+
                 productImage: product.image,
+
                 price: product.price,
+
                 quantity: item.quantity,
+
                 total,
             })
         }
 
-        // ---------------------------------------------------------
-        // CALCULATE ORDER TOTALS
-        // ---------------------------------------------------------
+        // =========================================================
+        // 6. CALCULATE ORDER TOTALS
+        // =========================================================
 
         const gst = subtotal * 0.18
 
@@ -234,34 +253,36 @@ export async function POST(request: Request) {
             )
         }
 
-        // ---------------------------------------------------------
-        // GET LOGGED-IN USER
+        // =========================================================
+        // 7. GET AUTHENTICATED USER
         //
         // Logged-in:
-        //   userId = authenticated User.id
+        //     userId = authenticated User.id
         //
         // Guest:
-        //   userId = null
-        // ---------------------------------------------------------
+        //     userId = null
+        // =========================================================
 
         const token = await getToken({
             req: request as any,
             secret: process.env.NEXTAUTH_SECRET,
         })
 
-        const userId = token?.sub ?? null
+        const userId =
+            typeof token?.sub === 'string'
+                ? token.sub
+                : null
 
         console.log(
             'RAZORPAY CREATE ORDER USER ID:',
             userId,
         )
 
-        // ---------------------------------------------------------
-        // CREATE RAZORPAY ORDER
+        // =========================================================
+        // 8. CREATE RAZORPAY ORDER
         //
-        // External operation must stay outside the Prisma
-        // database transaction.
-        // ---------------------------------------------------------
+        // External API operation remains outside Prisma transaction.
+        // =========================================================
 
         const razorpayOrder = await razorpay.orders.create({
             amount: razorpayAmount,
@@ -269,8 +290,8 @@ export async function POST(request: Request) {
             receipt: `earthymic_${Date.now()}`,
         })
 
-        // ---------------------------------------------------------
-        // DATABASE TRANSACTION
+        // =========================================================
+        // 9. DATABASE TRANSACTION
         //
         // Customer
         //      ↓
@@ -280,60 +301,138 @@ export async function POST(request: Request) {
         //      ↓
         // OrderItems
         //
-        // If any database operation fails, everything rolls back.
-        // ---------------------------------------------------------
+        // Any database failure rolls back the complete transaction.
+        // =========================================================
 
-        const result = await prisma.$transaction(async (tx) => {
-            // =======================================================
-            // 1. FIND OR CREATE CUSTOMER
-            // =======================================================
+        const result = await prisma.$transaction(
+            async (tx) => {
+                // =====================================================
+                // 9.1 FIND / CREATE CUSTOMER
+                // =====================================================
 
-            let customerRecord
+                let customerRecord:
+                    | Prisma.CustomerGetPayload<{
+                        select: {
+                            id: true
+                            userId: true
+                            name: true
+                            email: true
+                            phone: true
+                            createdAt: true
+                            updatedAt: true
+                        }
+                    }>
+                    | null = null
 
-            if (userId) {
-                // -----------------------------------------------------
-                // LOGGED-IN CUSTOMER
-                // -----------------------------------------------------
+                if (userId) {
+                    // -------------------------------------------------
+                    // LOGGED-IN USER
+                    //
+                    // Customer identity belongs to the authenticated
+                    // User, NOT to the checkout recipient.
+                    // -------------------------------------------------
 
-                customerRecord = await tx.customer.findUnique({
-                    where: {
-                        userId,
-                    },
-                })
+                    customerRecord =
+                        await tx.customer.findUnique({
+                            where: {
+                                userId,
+                            },
 
-                // -----------------------------------------------------
-                // Logged-in user may exist without a Customer record.
-                // Create the Customer in that case.
-                // -----------------------------------------------------
+                            select: {
+                                id: true,
+                                userId: true,
+                                name: true,
+                                email: true,
+                                phone: true,
+                                createdAt: true,
+                                updatedAt: true,
+                            },
+                        })
 
-                if (!customerRecord) {
-                    customerRecord = await tx.customer.create({
-                        data: {
-                            userId,
-                            name: fullName,
-                            email,
-                            phone: mobile,
-                        },
-                    })
-                } else {
-                    // ---------------------------------------------------
-                    // Update customer profile.
+                    // -------------------------------------------------
+                    // User exists but Customer doesn't exist yet.
                     //
                     // IMPORTANT:
-                    // This is NOT used as the delivery recipient source.
-                    // Delivery name comes from CustomerAddress.fullName.
-                    // ---------------------------------------------------
+                    // We create the Customer against userId.
+                    // The delivery recipient is handled separately
+                    // by CustomerAddress.
+                    // -------------------------------------------------
 
-                    customerRecord = await tx.customer.findUnique({
+                    if (!customerRecord) {
+                        const authenticatedUser =
+                            await tx.user.findUnique({
+                                where: {
+                                    id: userId,
+                                },
+
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            })
+
+                        if (!authenticatedUser) {
+                            throw new Error(
+                                'Authenticated user was not found.',
+                            )
+                        }
+
+                        customerRecord =
+                            await tx.customer.create({
+                                data: {
+                                    userId: authenticatedUser.id,
+
+                                    // Customer identity comes from
+                                    // authenticated User.
+                                    name:
+                                        authenticatedUser.name?.trim() ||
+                                        fullName,
+
+                                    email:
+                                        authenticatedUser.email
+                                            ?.trim()
+                                            .toLowerCase() ||
+                                        email,
+
+                                    phone: mobile,
+                                },
+
+                                select: {
+                                    id: true,
+                                    userId: true,
+                                    name: true,
+                                    email: true,
+                                    phone: true,
+                                    createdAt: true,
+                                    updatedAt: true,
+                                },
+                            })
+                    }
+                } else {
+                    // =====================================================
+                    // GUEST CUSTOMER
+                    // =====================================================
+                    // A guest has no authenticated User.
+                    //
+                    // Reuse an existing guest Customer when the same
+                    // email is used again.
+                    //
+                    // IMPORTANT:
+                    // Shipping name/fullName does NOT identify the Customer.
+                    // =====================================================
+
+                    customerRecord = await tx.customer.findFirst({
                         where: {
-                            userId,
+                            userId: null,
+                            email: email,
                         },
                     })
 
                     if (!customerRecord) {
                         customerRecord = await tx.customer.create({
                             data: {
-                                userId,
+                                userId: null,
                                 name: fullName,
                                 email,
                                 phone: mobile,
@@ -341,186 +440,227 @@ export async function POST(request: Request) {
                         })
                     }
                 }
-            } else {
-                // -----------------------------------------------------
-                // GUEST CUSTOMER
-                //
-                // A guest still gets a Customer record.
-                //
-                // userId remains NULL.
-                // -----------------------------------------------------
 
-                customerRecord = await tx.customer.create({
-                    data: {
-                        userId: null,
-                        name: fullName,
-                        email,
-                        phone: mobile,
-                    },
-                })
-            }
+                // =====================================================
+                // 9.2 FIND OR CREATE CUSTOMER ADDRESS
+                // =====================================================
 
-            // =======================================================
-            // 2. CREATE / FIND CUSTOMER ADDRESS
-            // =======================================================
-
-            let customerAddress =
-                await tx.customerAddress.findFirst({
-                    where: {
-                        customerId: customerRecord.id,
-                        addressLine1: address,
-                        city,
-                        state,
-                        postalCode: pinCode,
-                    },
-                })
-
-            if (!customerAddress) {
-                customerAddress =
-                    await tx.customerAddress.create({
-                        data: {
-                            customerId: customerRecord.id,
-
-                            // IMPORTANT:
-                            // Delivery recipient name is stored here.
-                            // It does NOT come from User.name.
-                            fullName,
-
-                            // Delivery mobile
-                            mobile,
+                let customerAddress =
+                    await tx.customerAddress.findFirst({
+                        where: {
+                            customerId:
+                                customerRecord.id,
 
                             addressLine1: address,
-                            addressLine2,
+
                             city,
+
                             state,
+
                             postalCode: pinCode,
-                            country,
-
-                            isDefault: true,
                         },
                     })
-            } else {
-                // -----------------------------------------------------
-                // Existing address.
+
+                if (!customerAddress) {
+                    // -------------------------------------------------
+                    // CREATE NEW ADDRESS
+                    //
+                    // fullName = DELIVERY RECIPIENT
+                    // mobile   = DELIVERY CONTACT
+                    //
+                    // These do NOT have to match User.name.
+                    // -------------------------------------------------
+
+                    customerAddress =
+                        await tx.customerAddress.create({
+                            data: {
+                                customerId:
+                                    customerRecord.id,
+
+                                fullName,
+
+                                mobile,
+
+                                addressLine1:
+                                    address,
+
+                                addressLine2,
+
+                                city,
+
+                                state,
+
+                                postalCode:
+                                    pinCode,
+
+                                country,
+
+                                isDefault: true,
+                            },
+                        })
+                } else {
+                    // -------------------------------------------------
+                    // EXISTING ADDRESS
+                    //
+                    // The recipient may change even when the physical
+                    // address remains the same.
+                    // -------------------------------------------------
+
+                    customerAddress =
+                        await tx.customerAddress.update({
+                            where: {
+                                id: customerAddress.id,
+                            },
+
+                            data: {
+                                fullName,
+
+                                mobile,
+
+                                addressLine2,
+
+                                country,
+
+                                isDefault: true,
+                            },
+                        })
+                }
+
+                // =====================================================
+                // 9.3 CREATE ORDER
                 //
-                // Update recipient information because the person
-                // receiving the order may be different from the
-                // previously saved recipient.
-                // -----------------------------------------------------
+                // Order stores a HISTORICAL SNAPSHOT.
+                //
+                // customerName
+                //     <- CustomerAddress.fullName
+                //
+                // customerPhone
+                //     <- CustomerAddress.mobile
+                //
+                // address fields
+                //     <- CustomerAddress
+                //
+                // customerEmail
+                //     <- checkout email
+                // =====================================================
 
-                customerAddress =
-                    await tx.customerAddress.update({
-                        where: {
-                            id: customerAddress.id,
-                        },
+                const order =
+                    await tx.order.create({
                         data: {
-                            fullName,
-                            mobile,
-                            addressLine2,
-                            country,
-                            isDefault: true,
+                            orderNumber: `EYM-${Date.now()}`,
+
+                            customerId:
+                                customerRecord.id,
+
+                            // -------------------------------------------------
+                            // DELIVERY SNAPSHOT
+                            // -------------------------------------------------
+
+                            customerName:
+                                customerAddress.fullName,
+
+                            customerEmail: email,
+
+                            customerPhone:
+                                customerAddress.mobile,
+
+                            addressLine1:
+                                customerAddress.addressLine1,
+
+                            addressLine2:
+                                customerAddress.addressLine2,
+
+                            city:
+                                customerAddress.city,
+
+                            state:
+                                customerAddress.state,
+
+                            postalCode:
+                                customerAddress.postalCode,
+
+                            country:
+                                customerAddress.country,
+
+                            // -------------------------------------------------
+                            // AMOUNTS
+                            // -------------------------------------------------
+
+                            subtotal,
+
+                            gstAmount: gst,
+
+                            shippingAmount:
+                                shipping,
+
+                            totalAmount,
+
+                            // -------------------------------------------------
+                            // STATUS
+                            // -------------------------------------------------
+
+                            status:
+                                OrderStatus.PENDING,
+
+                            paymentStatus:
+                                PaymentStatus.PENDING,
+
+                            paymentOrderId:
+                                razorpayOrder.id,
+
+                            // -------------------------------------------------
+                            // ORDER ITEMS
+                            // -------------------------------------------------
+
+                            items: {
+                                create: orderItems,
+                            },
+                        },
+
+                        include: {
+                            items: true,
                         },
                     })
-            }
 
-            // =======================================================
-            // 3. CREATE ORDER
-            //
-            // The Order is a historical snapshot.
-            //
-            // customerName  <- CustomerAddress.fullName
-            // customerPhone <- CustomerAddress.mobile
-            // address        <- CustomerAddress
-            // =======================================================
+                // =====================================================
+                // 9.4 RETURN TRANSACTION RESULT
+                // =====================================================
 
-            const order = await tx.order.create({
-                data: {
-                    orderNumber: `EYM-${Date.now()}`,
+                return {
+                    customer:
+                        customerRecord,
 
-                    customerId: customerRecord.id,
+                    customerAddress,
 
-                    // ---------------------------------------------------
-                    // DELIVERY SNAPSHOT
-                    // ---------------------------------------------------
+                    order,
+                }
+            },
+        )
 
-                    customerName: customerAddress.fullName,
-
-                    customerEmail: email,
-
-                    customerPhone: customerAddress.mobile,
-
-                    addressLine1: customerAddress.addressLine1,
-
-                    addressLine2: customerAddress.addressLine2,
-
-                    city: customerAddress.city,
-
-                    state: customerAddress.state,
-
-                    postalCode: customerAddress.postalCode,
-
-                    country: customerAddress.country,
-
-                    // ---------------------------------------------------
-                    // AMOUNTS
-                    // ---------------------------------------------------
-
-                    subtotal,
-
-                    gstAmount: gst,
-
-                    shippingAmount: shipping,
-
-                    totalAmount,
-
-                    // ---------------------------------------------------
-                    // STATUS
-                    // ---------------------------------------------------
-
-                    status: 'PENDING',
-
-                    paymentStatus: 'PENDING',
-
-                    paymentOrderId: razorpayOrder.id,
-
-                    // ---------------------------------------------------
-                    // ORDER ITEMS
-                    // ---------------------------------------------------
-
-                    items: {
-                        create: orderItems,
-                    },
-                },
-
-                include: {
-                    items: true,
-                },
-            })
-
-            return {
-                customer: customerRecord,
-                customerAddress,
-                order,
-            }
-        })
-
-        // ---------------------------------------------------------
-        // RESPONSE
-        // ---------------------------------------------------------
+        // =========================================================
+        // 10. RESPONSE
+        // =========================================================
 
         return NextResponse.json({
             id: razorpayOrder.id,
+
             amount: razorpayOrder.amount,
+
             currency: razorpayOrder.currency,
 
             orderId: result.order.id,
 
-            customerId: result.customer.id,
+            customerId:
+                result.customer.id,
 
-            customerAddressId: result.customerAddress.id,
+            customerAddressId:
+                result.customerAddress.id,
         })
     } catch (error) {
-        console.error('Razorpay order creation failed:', error)
+        console.error(
+            'Razorpay order creation failed:',
+            error,
+        )
 
         const message =
             error instanceof Error
